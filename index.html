@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>ToDo JSON App - V2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,11 +14,8 @@
 </head>
 <body>
 
-  <body>
-    <!-- 🔐 Bloc de login à insérer ici -->
-
-    <style>
-      #auth-overlay {
+  <style>
+    #auth-overlay {
         position: fixed;
         z-index: 9999;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -29,7 +27,7 @@
         color: white;
       }
     
-      #auth-box {
+    #auth-box {
         background: #27293d;
         padding: 2rem 2.5rem;
         border-radius: 12px;
@@ -40,11 +38,11 @@
         transition: all 0.3s ease;
       }
     
-      #auth-box h2 {
+    #auth-box h2 {
         margin-bottom: 1.2rem;
       }
     
-      #auth-box input {
+    #auth-box input {
         width: 100%;
         padding: 0.8rem;
         border: none;
@@ -55,7 +53,7 @@
         color: white;
       }
     
-      #auth-box button {
+    #auth-box button {
         width: 100%;
         padding: 0.8rem;
         border: none;
@@ -68,11 +66,11 @@
         transition: background 0.2s ease;
       }
     
-      #auth-box button:hover {
+    #auth-box button:hover {
         background-color: #9f48ff;
       }
     
-      #error-msg {
+    #error-msg {
         color: #ff5e5e;
         font-size: 0.9rem;
         height: 1rem;
@@ -82,7 +80,7 @@
         transition: opacity 0.3s;
       }
     
-      #error-msg.active {
+    #error-msg.active {
         opacity: 1;
       }
     </style>
