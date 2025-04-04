@@ -1,0 +1,482 @@
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+  min-height: 100vh;
+  color: #2d3748;
+}
+
+.container {
+  max-width: 1400px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+h1, h3, h4 {
+  font-weight: 700;
+  color: #1a202c;
+}
+
+h1 {
+  font-size: 2.2rem;
+  /*border-bottom: 2px solid #e2e8f0;*/
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+h3 {
+  font-size: 1.4rem;
+}
+
+h4 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.task-column-inner {
+  height: 100%;
+  min-height: 100px;
+}
+
+#task-form input, #task-form select {
+  box-shadow: none !important;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  padding: 0.625rem 1rem;
+  transition: all 0.2s ease;
+}
+
+#task-form input:focus, #task-form select:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15) !important;
+}
+
+.btn {
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: #4361ee;
+  border-color: #4361ee;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background-color: #3a56d4;
+  border-color: #3a56d4;
+}
+
+.btn-success {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.btn-success:hover, .btn-success:focus {
+  background-color: #0ea271;
+  border-color: #0ea271;
+}
+
+.btn-danger {
+  background-color: #ef4444;
+  border-color: #ef4444;
+}
+
+.btn-danger:hover, .btn-danger:focus {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+.btn.disabled, .btn:disabled, fieldset:disabled .btn {
+  color: grey;
+  pointer-events: none;
+  background-color: #f5f7fa;
+  border-color: #e2e8f0;
+  opacity: 0.65;
+}
+
+.btn-outline-secondary {
+  color: #1A202C;
+  border-color: #bfd0e1;
+  background-color: #F3F6F9;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #bfd0e1;
+  border-color: #bfd0e1;
+}
+
+.btn-outline-filter {
+  color: #1A202C;
+  border-color: #bfd0e1;
+  background-color: #F3F6F9;
+  font-size: 0.9rem;
+  padding: 0.8rem 2rem;
+}
+
+.btn-outline-filter:hover {
+  background-color: #bfd0e1;
+  border-color: #bfd0e1;
+}
+
+.form-select, .form-control {
+  border-radius: 8px;
+}
+
+/* Colonnes et cartes */
+.column-header {
+  background-color: #f8fafc;
+  border-radius: 8px 8px 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+}
+
+.task-column {
+  background-color: #f8fafc;
+  border-radius: 0 0 8px 8px;
+  padding: 1rem;
+  min-height: 300px;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+}
+
+/* Disposition en deux colonnes pour les cartes d'aujourd'hui */
+.today-cards-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+/* Carte de tâche */
+.task-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.task-card.en-cours {
+  border-left-color: #f59e0b;
+}
+
+.task-card.terminee {
+  border-left-color: #10b981;
+  opacity: 0.7;
+}
+
+.task-card h5 {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
+}
+
+.task-card.terminee h5 {
+  text-decoration: line-through;
+  color: #718096;
+}
+
+.task-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Indicateur d'importance */
+.importance {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-weight: bold;
+  color: #e53e3e;
+}
+
+/* Styles pour les différents statuts */
+.task-card.afaire {
+  border-left: 4px solid #3b82f6;
+}
+
+.task-card.alire {
+  border-left: 4px solid #8b5cf6;
+}
+
+.task-card.achallenger {
+  border-left: 4px solid #f59e0b;
+}
+
+.task-card.encours {
+  border-left: 4px solid #f59e0b;
+}
+
+.task-card.terminee {
+  border-left: 4px solid #10b981;
+  opacity: 0.7;
+}
+
+/* Tags */
+.tag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.tag.illustration {
+  background-color: #c3e6fc;
+  color: #0369a1;
+}
+
+.tag.design {
+  background-color: #c7d2fe;
+  color: #4338ca;
+}
+
+.tag.ui-design {
+  background-color: #ddd6fe;
+  color: #6d28d9;
+}
+
+.tag.copywriting {
+  background-color: #fce7f3;
+  color: #db2777;
+}
+
+.tag.perso {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.tag.travail {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+/* Statut styles */
+.statut {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.statut-afaire {
+  background-color: #e0f0ff;
+  color: #0d6efd;
+}
+
+.statut-alire {
+  background-color: #e0f0ff;
+  color: #0d6efd;
+}
+
+.statut-encours {
+  background-color: #fff3cd;
+  color: #d17700;
+}
+
+.statut-achallenger {
+  background-color: #fff3cd;
+  color: #d17700;
+}
+
+.statut-terminee {
+  background-color: #d1e7dd;
+  color: #198754;
+  text-decoration: line-through;
+}
+
+/* Actions */
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.card-actions button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Date */
+.deadline-date {
+  font-size: 0.8rem;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Styles pour TinyMCE */
+.tox-tinymce {
+  border-radius: 0.25rem !important;
+  border-color: #ced4da !important;
+}
+
+.tox-statusbar {
+  display: none !important;
+}
+
+/* Style pour le contenu HTML dans les descriptions */
+.task-description-content {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  margin-top: 8px;
+  font-size: 0.9rem;
+}
+
+.task-description-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.task-description-content ul, 
+.task-description-content ol {
+  padding-left: 20px;
+}
+
+.task-description-content p {
+  margin-bottom: 0.5rem;
+}
+
+.task-description-content h1,
+.task-description-content h2,
+.task-description-content h3,
+.task-description-content h4,
+.task-description-content h5,
+.task-description-content h6 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+/* Styles pour le toggle de vue */
+.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.form-check-input {
+  cursor: pointer;
+  width: 2.5em;
+  height: 1.25em;
+}
+
+.form-check-label {
+  cursor: pointer;
+  font-weight: 500;
+  padding-left: 0.25rem;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .task-column {
+    margin-bottom: 1.5rem;
+  }
+}
+
+#date-filters button.active {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.btn-dater {
+  inline-size: max-content;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+
+.btn-dater:hover {
+  background-color: #0d6efd;
+  color: white;
+}
+
+/* Styles pour les sous-tâches */
+.subtask-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+
+.subtask-item .form-check {
+  margin-right: 10px;
+  min-width: 24px;
+}
+
+.subtask-item .form-check-input:checked + .subtask-text {
+  text-decoration: line-through;
+  color: #6c757d;
+}
+
+.subtask-text {
+  flex-grow: 1;
+  margin-right: 10px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background-color: transparent;
+}
+
+.subtask-text:focus {
+  outline: none;
+  border-color: #86b7fe;
+  background-color: #fff;
+}
+
+.subtask-text.editing {
+  border-color: #86b7fe;
+  background-color: #fff;
+}
+
+.subtask-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.subtask-progress {
+  height: 6px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  background-color: #e9ecef;
+}
+
+.subtask-progress .progress-bar {
+  background-color: #0d6efd;
+  transition: width 0.3s ease;
+}
+
+.subtask-summary {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-bottom: 5px;
+}

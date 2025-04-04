@@ -1,0 +1,122 @@
+[
+  {
+    "titre": "Expédition TeaW UPS",
+    "tag": "Teaw",
+    "deadline": "2025-04-02",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:03:05.974Z"
+  },
+  {
+    "titre": "Expédition Ecommercant.shop",
+    "tag": "EMS",
+    "deadline": "2025-04-02",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:03:25.336Z"
+  },
+  {
+    "titre": "Point sur les to do de sprint",
+    "tag": "EMS",
+    "deadline": "2025-04-03",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:03:43.163Z"
+  },
+  {
+    "titre": "Facturation Voyant",
+    "tag": "Cocolor",
+    "deadline": "2025-04-02",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:04:17.749Z"
+  },
+  {
+    "titre": "Avancer sur Artik",
+    "tag": "Cocolor",
+    "deadline": "2025-04-03",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:06:28.081Z"
+  },
+  {
+    "titre": "Avancer sur VTC Lyon",
+    "tag": "Cocolor",
+    "deadline": "2025-04-03",
+    "statut": "À faire",
+    "description": "<p>To do :</p>\n<ul class=\"tox-checklist\">\n<li>revoir le texte</li>\n<li>revoir le design g&eacute;n&eacute;rale</li>\n<li>revoir design homepage</li>\n<li>ajouter un bouton dans le menu pour appeler + whatsapp</li>\n</ul>",
+    "createdAt": "2025-04-02T08:06:47.627Z"
+  },
+  {
+    "titre": "Répondre à Séverine",
+    "tag": "Cocolor",
+    "deadline": "2025-04-02",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:08:35.225Z"
+  },
+  {
+    "titre": "Faire le rapport d'audit pour Randanne",
+    "tag": "Cocolor",
+    "deadline": "2025-04-03",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:08:54.353Z"
+  },
+  {
+    "titre": "Session 1h - Formation Ads",
+    "tag": "Perso",
+    "deadline": "2025-04-03",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:09:22.490Z"
+  },
+  {
+    "titre": "Gérer l'assurance Tesla",
+    "tag": "Perso",
+    "deadline": "2025-04-03",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:09:48.964Z"
+  },
+  {
+    "titre": "Compta 2024",
+    "tag": "LCF",
+    "deadline": "2025-04-07",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:10:10.025Z"
+  },
+  {
+    "titre": "Projet HelloAsso Killer",
+    "tag": "EMS",
+    "deadline": "2025-04-02",
+    "statut": "À challenger",
+    "description": "<p>Possibilit&eacute; :</p>\n<ul>\n<li>D&eacute;velopper les fonctionnalit&eacute;s en interne</li>\n<li>Partenariat AssoConnect <a href=\"https://www.assoconnect.com/\" aria-invalid=\"true\">https://www.assoconnect.com/</a></li>\n<li>Partenariat Yapla <a href=\"https://www.yapla.com/fr-fr/\">https://www.yapla.com/fr-fr/</a></li>\n<li>Partenariat Score'n'co <a href=\"https://scorenco.com/\">https://scorenco.com/</a></li>\n</ul>\n<p>Infos sur HelloAsso sur EMS (anthony le 02/04/25) :</p>\n<ul>\n<li>Cl&eacute;s HelloAsso renseign&eacute;es : 3048</li>\n<li>Compte user avec forme juridique Asso : 4538</li>\n<li>Nombre de HelloAsso avec au moins 1 offre : ???</li>\n</ul>",
+    "createdAt": "2025-04-02T08:12:56.614Z"
+  },
+  {
+    "titre": "Imagine plan IA pour ems",
+    "tag": "EMS",
+    "deadline": "2025-04-02",
+    "statut": "À challenger",
+    "description": "",
+    "createdAt": "2025-04-02T08:29:47.032Z"
+  },
+  {
+    "titre": "Traiter les e-mails non lus",
+    "tag": "All",
+    "deadline": "2025-04-02",
+    "statut": "À faire",
+    "description": "",
+    "createdAt": "2025-04-02T08:30:36.888Z"
+  },
+  {
+    "titre": "Devis STMB Construction",
+    "tag": "Cocolor",
+    "deadline": "2025-04-02",
+    "statut": "À faire",
+    "description": "<ul>\n<li>Refonte globale de toutes les pages du site : <a href=\"https://www.stmb-construction-chalets-bois.com/\">https://www.stmb-construction-chalets-bois.com/</a></li>\n<li>Garder l'esprit marron et vert (sympa..)</li>\n<li>Cr&eacute;ation d'un site e-commerce pour les carport dans les tons vois &eacute;galement (une quarantaine de produits mais ok pour faire les produits eux-m&ecirc;me is on avance sur un ou plusieurs template.</li>\n<li>Important pour l'un comme pour l'autre d'insister sur l'artisanat et le made in France.</li>\n</ul>\n<p>Objectif : tabler un peu en dessous des 3K&euro;</p>",
+    "createdAt": "2025-04-02T09:05:47.373Z"
+  }
+]
