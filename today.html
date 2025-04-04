@@ -137,7 +137,11 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.tiny.cloud/1/lxbqh32vg77i30wo5gqalmb4qmlm5qrkxkz2j3xoyqwexm44/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+  <script src="config.js"></script>
+  <script>
+    // Utiliser la clé API depuis le fichier de configuration
+    document.write('<script src="https://cdn.tiny.cloud/1/' + config.tinyMCEApiKey + '/tinymce/6/tinymce.min.js" referrerpolicy="origin"><\/script>');
+  </script>
   <script>
     // Définir la date d'aujourd'hui par défaut pour le champ deadline
     document.addEventListener('DOMContentLoaded', function() {

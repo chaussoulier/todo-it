@@ -42,6 +42,33 @@ Une version publique sera bientôt disponible via GitHub Pages pour tester l'app
 
 ---
 
+## 🔒 Sécurité
+
+### Gestion des clés API
+
+Si vous ajoutez des fonctionnalités nécessitant des clés API ou des informations sensibles :
+
+1. **Ne jamais** stocker de clés API directement dans le code source
+2. Utiliser un fichier `.env` séparé (qui est ignoré par Git grâce au `.gitignore`)
+3. Pour le développement front-end, considérer l'utilisation d'un proxy serveur pour les appels API sensibles
+
+Exemple de structure recommandée :
+```
+// config.example.js - À inclure dans le dépôt (sans clés réelles)
+const config = {
+  apiKey: "VOTRE_CLE_API_ICI",
+  apiEndpoint: "https://api.example.com"
+};
+
+// config.js - À créer localement (ignoré par Git)
+const config = {
+  apiKey: "ma_vraie_cle_api_123",
+  apiEndpoint: "https://api.example.com"
+};
+```
+
+---
+
 ## 🙋‍♂️ À propos
 
 Développé par [Clément](https://github.com/chaussoulier) dans le cadre d’un side project pour apprendre, tester, et organiser sa vie débordée d’entrepreneur 👨‍💻
