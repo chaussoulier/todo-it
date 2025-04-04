@@ -2,6 +2,8 @@
 
 # 🗂️ ToDoIt – L'application de gestion de tâches simple et efficace
 
+v.1.0.1
+
 ToDoIt est une petite application web développée en HTML, CSS et JavaScript vanilla. Elle a pour but de t'aider à organiser tes tâches du quotidien avec une interface claire, des statuts personnalisables, des deadlines visuelles et même un système de sous-tâches 💪
 
 ---
