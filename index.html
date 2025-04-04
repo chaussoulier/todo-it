@@ -13,6 +13,105 @@
 </head>
 <body>
 
+  <body>
+    <!-- 🔐 Bloc de login à insérer ici -->
+
+    <style>
+      #auth-overlay {
+        position: fixed;
+        z-index: 9999;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(145deg, #1f1f2e, #15151f);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Segoe UI', sans-serif;
+        color: white;
+      }
+    
+      #auth-box {
+        background: #27293d;
+        padding: 2rem 2.5rem;
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        text-align: center;
+        width: 100%;
+        max-width: 400px;
+        transition: all 0.3s ease;
+      }
+    
+      #auth-box h2 {
+        margin-bottom: 1.2rem;
+      }
+    
+      #auth-box input {
+        width: 100%;
+        padding: 0.8rem;
+        border: none;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+        background: #1a1b2e;
+        color: white;
+      }
+    
+      #auth-box button {
+        width: 100%;
+        padding: 0.8rem;
+        border: none;
+        border-radius: 8px;
+        background-color: #7c3aed;
+        color: white;
+        font-weight: bold;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+    
+      #auth-box button:hover {
+        background-color: #9f48ff;
+      }
+    
+      #error-msg {
+        color: #ff5e5e;
+        font-size: 0.9rem;
+        height: 1rem;
+        margin-top: -0.5rem;
+        margin-bottom: 1rem;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+    
+      #error-msg.active {
+        opacity: 1;
+      }
+    </style>
+    
+    <div id="auth-overlay">
+      <div id="auth-box">
+        <h2>🔐 Accès sécurisé</h2>
+        <input type="password" id="passwordInput" placeholder="Entrez le mot de passe" />
+        <div id="error-msg">Mot de passe incorrect</div>
+        <button onclick="checkPassword()">Accéder</button>
+      </div>
+    </div>
+    
+    <script>
+      const goodPassword = "monMotSecret"; // <-- remplace par ton mot de passe
+    
+      function checkPassword() {
+        const input = document.getElementById("passwordInput").value;
+        const error = document.getElementById("error-msg");
+    
+        if (input === goodPassword) {
+          document.getElementById("auth-overlay").style.display = "none";
+        } else {
+          error.classList.add("active");
+          document.getElementById("passwordInput").value = "";
+        }
+      }
+    </script>
+   
   <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1>📝 To-do list Clément</h1>
