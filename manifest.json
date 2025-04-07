@@ -1,0 +1,17 @@
+{
+  "name": "Todo It",
+  "short_name": "Todo It",
+  "description": "Une application de gestion de tâches simple et efficace",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ],
+  "gcm_sender_id": "651487407667"
+}
