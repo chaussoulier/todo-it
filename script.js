@@ -10,9 +10,43 @@ const completedTasks = document.getElementById('completed-tasks');
 
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let isDetailedView = true; // Par défaut, on est en vue détaillée
+let currentEditingTaskIndex = null; // Index de la tâche en cours d'édition
 
 function saveTasks() {
   localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+// Fonction pour u00e9chapper les caractères HTML et empêcher l'interprétation des balises
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Fonction pour nettoyer le HTML en ne conservant que les sauts de ligne
+function stripHtmlKeepLineBreaks(html) {
+  if (!html) return '';
+  // Remplacer les balises de saut de ligne par des sauts de ligne réels
+  let text = html.replace(/<br\s*\/?>/gi, '\n');
+  // Remplacer les balises de paragraphe par des sauts de ligne doubles
+  text = text.replace(/<\/p><p>/gi, '\n\n');
+  text = text.replace(/<p>/gi, '');
+  text = text.replace(/<\/p>/gi, '\n\n');
+  // Supprimer toutes les autres balises HTML
+  text = text.replace(/<[^>]*>/g, '');
+  // Décoder les entités HTML
+  text = text.replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>')
+             .replace(/&amp;/g, '&')
+             .replace(/&quot;/g, '"')
+             .replace(/&#039;/g, '\'');
+  // Éviter les sauts de ligne multiples consécutifs
+  text = text.replace(/\n{3,}/g, '\n\n');
+  return text.trim();
 }
 
 function formatDeadline(dateStr) {
@@ -28,7 +62,7 @@ function formatDeadline(dateStr) {
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) return "🕰️ En retard";
-  if (diffDays === 0) return "📆 Aujourd'hui";
+  if (diffDays === 0) return "📅 Aujourd'hui";
   if (diffDays === 1) return "⏰ Demain";
   if (diffDays >= 2 && diffDays <= 5) {
     return `📅 ${deadline.toLocaleDateString('fr-FR', { weekday: 'long' })}`;
@@ -58,6 +92,32 @@ function getTagClass(tag) {
   };
   
   return tagClasses[normalizedTag] || '';
+}
+
+// Fonction pour calculer le score d'importance total d'une tâche
+function calculateImportanceScore(task) {
+  // Score basé sur le statut (1 à 3)
+  let statutScore = 1;
+  if (task.statut === "À faire") {
+    statutScore = 3;
+  } else if (task.statut === "À challenger") {
+    statutScore = 2;
+  } else if (task.statut === "À lire") {
+    statutScore = 1;
+  }
+  
+  // Score basé sur l'importance personnalisée (1 à 3)
+  let importanceScore = 1;
+  if (task.importance === "!!!") {
+    importanceScore = 3;
+  } else if (task.importance === "!!") {
+    importanceScore = 2;
+  } else if (task.importance === "!") {
+    importanceScore = 1;
+  }
+  
+  // Score total (2 à 6)
+  return statutScore + importanceScore;
 }
 
 function renderTasksFiltered() {
@@ -90,8 +150,12 @@ function renderTasksFiltered() {
       if (!a.tag) return 1;
       if (!b.tag) return -1;
       return a.tag.localeCompare(b.tag);
+    } else {
+      // Tri par importance par du00e9faut (du plus important au moins important)
+      const scoreA = calculateImportanceScore(a);
+      const scoreB = calculateImportanceScore(b);
+      return scoreB - scoreA; // Ordre du00e9croissant
     }
-    return 0;
   });
 
   // Séparer les tâches par date
@@ -200,17 +264,26 @@ function renderTaskCard(task, index, container) {
   const card = document.createElement('div');
   const classStatut = task.statut.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ /g, "");
   card.className = `task-card ${classStatut}`;
-  card.dataset.taskIndex = index;
+  card.dataset.taskIndex = index; // Ajouter l'index comme attribut de données
+  
+  // Calculer le score d'importance total
+  const importanceScore = calculateImportanceScore(task);
+  // Ajouter l'attribut data-importance pour le style CSS
+  card.dataset.importance = importanceScore;
   
   // Déterminer le degré d'importance
-  let importance = "";
+  // Utiliser l'importance personnalisée si disponible, sinon utiliser celle basée sur le statut
+  let importanceStatut = "";
   if (task.statut === "À faire") {
-    importance = "!!!";
+    importanceStatut = "!!!";
   } else if (task.statut === "À lire") {
-    importance = "!";
+    importanceStatut = "!";
   } else if (task.statut === "À challenger") {
-    importance = "!!";
+    importanceStatut = "!!";
   }
+  
+  // Utiliser l'importance personnalisée si disponible
+  const importance = task.importance || importanceStatut;
   
   const tagClass = task.tag ? getTagClass(task.tag) : '';
   
@@ -240,13 +313,13 @@ function renderTaskCard(task, index, container) {
       <div>
         ${task.tag ? `<span class="tag ${tagClass}" data-index="${index}">${task.tag}</span>` : ''}
         <span class="statut statut-${classStatut}">${task.statut}</span>
-        ${importance ? `<span class="importance">${importance}</span>` : ''}
+        <span class="importance" title="Score d'importance: ${importanceScore}/6">${importanceScore}</span>
       </div>
       <div class="deadline-date" data-index="${index}">
         ${formatDeadline(task.deadline)}
       </div>
     </div>
-    ${task.description ? `<div class="task-description-content">${task.description}</div>` : ''}
+    ${task.description ? `<div class="task-description-content"><pre class="task-description-pre">${stripHtmlKeepLineBreaks(task.description)}</pre></div>` : ''}
     
     <!-- Affichage des sous-tâches -->
     ${subtaskSummary}
@@ -339,6 +412,13 @@ function renderCompletedTaskCard(task, index) {
   
   const tagClass = task.tag ? getTagClass(task.tag) : '';
   
+  // Formater la date de traitement si elle existe
+  let completedDateStr = '';
+  if (task.completedAt) {
+    const completedDate = new Date(task.completedAt);
+    completedDateStr = `<div class="completed-date">✅ Terminée le ${completedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} à ${completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`;
+  }
+
   card.innerHTML = `
     <h5 class="task-title" data-index="${index}">${task.titre}</h5>
     <div class="d-flex justify-content-between align-items-start">
@@ -350,7 +430,8 @@ function renderCompletedTaskCard(task, index) {
         ${formatDeadline(task.deadline)}
       </div>
     </div>
-    ${task.description ? `<div class="task-description-content">${task.description}</div>` : ''}
+    ${completedDateStr}
+    ${task.description ? `<div class="task-description-content"><pre class="task-description-pre">${stripHtmlKeepLineBreaks(task.description)}</pre></div>` : ''}
   `;
   
   col.appendChild(card);
@@ -374,6 +455,11 @@ function markAsDone(index) {
   }
   
   tasks[index].statut = "Terminée";
+  
+  // Ajouter la date de traitement (date à laquelle la tâche a été marquée comme terminée)
+  tasks[index].completedAt = new Date().toISOString();
+  tasks[index].log.push(`Marquée comme terminée le ${new Date().toLocaleString('fr-FR')}`);
+  
   saveTasks();
   renderTasksFiltered();
 }
@@ -400,6 +486,7 @@ function editTitle(element, index) {
     const newValue = input.value.trim();
     if (newValue) {
       tasks[index].titre = newValue;
+      tasks[index].log.push(`Titre modifié en "${newValue}" le ${new Date().toLocaleString('fr-FR')}`);
       saveTasks();
       renderTasksFiltered();
     } else {
@@ -435,6 +522,7 @@ function editTag(element, index) {
 
   input.addEventListener("blur", () => {
     tasks[index].tag = input.value.trim();
+    tasks[index].log.push(`Tag modifié en "${input.value.trim()}" le ${new Date().toLocaleString('fr-FR')}`);
     saveTasks();
     renderTasksFiltered();
     updateTagSuggestions();
@@ -468,6 +556,7 @@ function editDeadline(element, index) {
 
   input.addEventListener("blur", () => {
     tasks[index].deadline = input.value;
+    tasks[index].log.push(`Date limite modifiée en "${input.value}" le ${new Date().toLocaleString('fr-FR')}`);
     saveTasks();
     renderTasksFiltered();
   });
@@ -492,8 +581,10 @@ function gererTachesEnRetard() {
   const todayStr = new Date().toISOString().split("T")[0];
 
   tasks.forEach(task => {
-    if (task.deadline && new Date(task.deadline).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)) {
+    // Ne pas modifier les tâches terminées
+    if (task.statut !== "Terminée" && task.deadline && new Date(task.deadline).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)) {
       task.deadline = todayStr;
+      task.log.push(`Date limite déplacée à aujourd'hui (${todayStr}) le ${new Date().toLocaleString('fr-FR')}`);
     }
   });
 
@@ -508,7 +599,7 @@ function updateRetardButtonState() {
 
   const now = new Date().setHours(0, 0, 0, 0);
   const enRetard = tasks.some(task =>
-    task.deadline && new Date(task.deadline).setHours(0, 0, 0, 0) < now
+    task.statut !== "Terminée" && task.deadline && new Date(task.deadline).setHours(0, 0, 0, 0) < now
   );
 
   btn.disabled = !enRetard;
@@ -609,6 +700,7 @@ function addTask(event) {
   const tag = document.getElementById("task-tag").value.trim();
   const deadline = document.getElementById("task-deadline").value;
   const statut = document.getElementById("task-statut").value || "À faire";
+  const importance = document.getElementById("task-importance").value || "!";  // Ajout du degré d'importance
   
   if (!titre) {
     alert("Le titre est obligatoire");
@@ -620,9 +712,11 @@ function addTask(event) {
     tag,
     deadline,
     statut,
+    importance, // Ajout du degré d'importance
     description: "", // Ajout du champ description
     etapes: [], // Ajout du tableau pour les sous-tâches
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    log: [`Créée le ${new Date().toLocaleString('fr-FR')}`]
   };
   
   tasks.push(nouvelleTache);
@@ -646,6 +740,7 @@ function updateTaskStatut(index, newStatut) {
   }
   
   tasks[index].statut = newStatut;
+  tasks[index].log.push(`Statut changé en ${newStatut} le ${new Date().toLocaleString('fr-FR')}`);
   saveTasks();
   renderTasksFiltered();
 }
@@ -660,6 +755,9 @@ function openTaskDetailModal(index) {
     return;
   }
   
+  // Mettre à jour l'index de la tâche en cours d'édition
+  currentEditingTaskIndex = index;
+  
   const task = tasks[index];
   document.getElementById('modal-task-index').value = index;
   document.getElementById('modal-task-title').value = task.titre;
@@ -667,11 +765,33 @@ function openTaskDetailModal(index) {
   // Gérer le champ de description
   const descriptionField = document.getElementById('modal-task-description');
   
-  if (tinyMCEInitialized && tinymce.get('modal-task-description')) {
-    // Si TinyMCE est déjà initialisé, mettre à jour son contenu
-    tinymce.get('modal-task-description').setContent(task.description || '');
+  // Vérifier si TinyMCE est disponible dans le scope global
+  if (typeof tinymce !== 'undefined') {
+    // Si TinyMCE n'est pas encore initialisé, l'initialiser maintenant
+    if (!tinyMCEInitialized) {
+      initTinyMCE();
+    }
+    
+    // Attendre un court instant pour s'assurer que TinyMCE est prêt
+    setTimeout(function() {
+      if (tinymce.get('modal-task-description')) {
+        // Mettre à jour le contenu de TinyMCE
+        tinymce.get('modal-task-description').setContent(task.description || '');
+      } else {
+        console.warn('TinyMCE editor not found for modal-task-description');
+        // Fallback au textarea standard
+        if (task.description && task.description.trim() !== '') {
+          descriptionField.value = task.description; // Pas besoin d'échapper ici car c'est un champ de formulaire
+          descriptionField.classList.remove('description-placeholder');
+        } else {
+          descriptionField.value = tinyMCEPlaceholder;
+          descriptionField.classList.add('description-placeholder');
+        }
+      }
+    }, 100);
   } else {
-    // Sinon, mettre à jour le textarea avec le contenu ou le placeholder
+    console.warn('TinyMCE not available');
+    // Fallback au textarea standard
     if (task.description && task.description.trim() !== '') {
       descriptionField.value = task.description;
       descriptionField.classList.remove('description-placeholder');
@@ -684,6 +804,7 @@ function openTaskDetailModal(index) {
   document.getElementById('modal-task-tag').value = task.tag || '';
   document.getElementById('modal-task-deadline').value = task.deadline || '';
   document.getElementById('modal-task-statut').value = task.statut;
+  document.getElementById('modal-task-importance').value = task.importance || '!';
   
   // Afficher les sous-tâches
   renderSubtasks(task.etapes || []);
@@ -723,6 +844,7 @@ function saveTaskDetails() {
   task.tag = document.getElementById('modal-task-tag').value.trim();
   task.deadline = document.getElementById('modal-task-deadline').value;
   task.statut = document.getElementById('modal-task-statut').value;
+  task.importance = document.getElementById('modal-task-importance').value || '!';
   
   // Récupérer les sous-tâches
   task.etapes = collectSubtasks();
@@ -734,159 +856,107 @@ function saveTaskDetails() {
   modal.hide();
 }
 
-// Initialiser l'application
-function init() {
-  // Charger les tâches depuis le stockage local
-  loadTasks();
+// Initialisation
+// Ne pas initialiser TinyMCE au démarrage, mais seulement au clic
+// initTinyMCE();
+renderTasksFiltered();
+updateTagSuggestions();
+
+// Attendre que le DOM soit chargé avant d'ajouter les écouteurs d'événements
+document.addEventListener('DOMContentLoaded', function() {
+  // Ajouter un écouteur d'événement pour le formulaire
+  const taskForm = document.getElementById('task-form');
+  if (taskForm) {
+    taskForm.addEventListener('submit', addTask);
+  }
   
-  // Préparer le champ de description pour TinyMCE
-  setupDescriptionField();
+  // Ajouter un écouteur d'événement pour le toggle de la vue
+  const viewModeToggle = document.getElementById('view-mode-toggle');
+  if (viewModeToggle) {
+    viewModeToggle.addEventListener('change', toggleViewMode);
+    // Déclencher l'événement une fois pour initialiser l'affichage
+    toggleViewMode();
+  }
   
-  // Initialiser les événements
-  initEvents();
+  // Ajouter des écouteurs pour les filtres
+  const filterTag = document.getElementById('filter-tag');
+  const sortBy = document.getElementById('sort-by');
   
-  // Mettre à jour l'affichage
-  renderTasks();
-  updateTagFilter();
+  if (filterTag) {
+    filterTag.addEventListener('change', renderTasksFiltered);
+  }
+  
+  if (sortBy) {
+    sortBy.addEventListener('change', renderTasksFiltered);
+  }
+  
+  // Ajouter des écouteurs pour les boutons
+  const resetFiltersBtn = document.getElementById('reset-filters-btn');
+  if (resetFiltersBtn) {
+    resetFiltersBtn.addEventListener('click', resetFilters);
+  }
+  
+  const viderTermineesBtn = document.getElementById('vider-terminees-btn');
+  if (viderTermineesBtn) {
+    viderTermineesBtn.addEventListener('click', viderTerminees);
+  }
+  
+  const saveTaskDetailsBtn = document.getElementById('save-task-details-btn');
+  if (saveTaskDetailsBtn) {
+    saveTaskDetailsBtn.addEventListener('click', saveTaskDetails);
+  }
+  
+  const exportJsonBtn = document.getElementById('export-json-btn');
+  if (exportJsonBtn) {
+    exportJsonBtn.addEventListener('click', exportTasksToJson);
+  }
+  
+  // Initialisation du bouton d'import JSON
+  const importJsonBtn = document.getElementById('import-json-btn');
+  const importJsonInput = document.getElementById('import-json-input');
+  if (importJsonBtn && importJsonInput) {
+    importJsonBtn.addEventListener('click', function() {
+      importJsonInput.click(); // Déclencher le sélecteur de fichier
+    });
+    importJsonInput.addEventListener('change', importTasksFromJson);
+  }
+  
+  // Initialiser la date par défaut
+  const taskDeadline = document.getElementById('task-deadline');
+  if (taskDeadline) {
+    taskDeadline.value = new Date().toISOString().split("T")[0];
+  }
+  
+  // Écouteur pour le bouton de gestion des tâches en retard
+  const btnGererRetard = document.getElementById('btn-gerer-retard');
+  if (btnGererRetard) {
+    btnGererRetard.addEventListener('click', function() {
+      console.log("Bouton 'Passer à aujourd'hui' cliqué");
+      deplacerRetardVersAujourdhui();
+    });
+  }
+  
+  // Écouteur pour le bouton "Ajouter une étape"
+  const addSubtaskBtn = document.getElementById('add-subtask-btn');
+  if (addSubtaskBtn) {
+    addSubtaskBtn.addEventListener('click', addSubtask);
+  }
+});
+
+function setQuickDeadline(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  const formattedDate = date.toISOString().split('T')[0];
+  document.getElementById('modal-task-deadline').value = formattedDate;
 }
 
-// Configurer le champ de description pour le chargement différé de TinyMCE
-function setupDescriptionField() {
-  const descriptionField = document.getElementById('modal-task-description');
-  if (!descriptionField) return;
-  
-  // Ajouter le placeholder par défaut
-  descriptionField.value = tinyMCEPlaceholder;
-  descriptionField.classList.add('description-placeholder');
-  
-  // Ajouter un écouteur d'événements pour initialiser TinyMCE au clic
-  descriptionField.addEventListener('click', function() {
-    if (!tinyMCEInitialized) {
-      // Supprimer le placeholder et la classe associée
-      if (descriptionField.value === tinyMCEPlaceholder) {
-        descriptionField.value = '';
-      }
-      descriptionField.classList.remove('description-placeholder');
-      
-      // Initialiser TinyMCE
-      initTinyMCE();
-    }
-  });
+function setQuickDeadlineNextWeek() {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  const formattedDate = date.toISOString().split('T')[0];
+  document.getElementById('modal-task-deadline').value = formattedDate;
 }
 
-// Fonction pour exporter les tâches au format JSON
-function exportTasksToJson() {
-  // Créer un objet Blob avec le contenu JSON
-  const tasksJson = JSON.stringify(tasks, null, 2);
-  const blob = new Blob([tasksJson], { type: 'application/json' });
-  
-  // Créer une URL pour le Blob
-  const url = URL.createObjectURL(blob);
-  
-  // Créer un élément <a> pour déclencher le téléchargement
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `tasks_export_${new Date().toISOString().split('T')[0]}.json`;
-  
-  // Ajouter l'élément au document, cliquer dessus, puis le supprimer
-  document.body.appendChild(a);
-  a.click();
-  
-  // Nettoyer
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 100);
-}
-
-// Fonction pour importer les tâches depuis un fichier JSON
-function importTasksFromJson(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  
-  reader.onload = function(e) {
-    try {
-      // Analyser le contenu JSON
-      const importedTasks = JSON.parse(e.target.result);
-      
-      // Vérifier que le contenu est un tableau
-      if (!Array.isArray(importedTasks)) {
-        alert('Format de fichier invalide. Le fichier doit contenir un tableau de tâches.');
-        return;
-      }
-      
-      // Demander confirmation avant de remplacer les tâches existantes
-      if (confirm(`Voulez-vous importer ${importedTasks.length} tâches ? Cela remplacera toutes les tâches existantes.`)) {
-        // Remplacer les tâches existantes par les tâches importées
-        tasks = importedTasks;
-        
-        // Sauvegarder les tâches dans le localStorage
-        saveTasks();
-        
-        // Rafraîchir l'affichage
-        renderTasksFiltered();
-        
-        alert('Import réussi !');
-      }
-    } catch (error) {
-      alert(`Erreur lors de l'analyse du fichier JSON : ${error.message}`);
-    }
-  };
-  
-  reader.onerror = function() {
-    alert('Erreur lors de la lecture du fichier.');
-  };
-  
-  // Lire le fichier comme texte
-  reader.readAsText(file);
-  
-  // Réinitialiser l'input file pour permettre de sélectionner le même fichier à nouveau si nécessaire
-  event.target.value = '';
-}
-
-// Variables pour TinyMCE
-let tinyMCEInitialized = false;
-let tinyMCEPlaceholder = 'Cliquez ici pour ajouter une description détaillée...';
-
-// Initialisation de TinyMCE uniquement au clic
-function initTinyMCE() {
-  // Si TinyMCE est déjà initialisé, ne rien faire
-  if (tinyMCEInitialized) return;
-  
-  // Initialiser TinyMCE
-  tinymce.init({
-    selector: '#modal-task-description',
-    height: 300,
-    menubar: false,
-    plugins: [
-      'advlist autolink lists link image charmap print preview anchor',
-      'searchreplace visualblocks code fullscreen',
-      'insertdatetime media table paste code help wordcount'
-    ],
-    toolbar: 'undo redo | formatselect | ' +
-    'bold italic backcolor | alignleft aligncenter ' +
-    'alignright alignjustify | bullist numlist outdent indent | ' +
-    'removeformat | help',
-    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-    setup: function(editor) {
-      editor.on('init', function() {
-        tinyMCEInitialized = true;
-        
-        // Si nous éditons une tâche existante, récupérer son contenu
-        if (currentEditingTaskIndex !== null) {
-          const task = tasks[currentEditingTaskIndex];
-          if (task && task.description) {
-            editor.setContent(task.description);
-          }
-        }
-      });
-    }
-  });
-}
-
-// Fonction pour déplacer toutes les tâches en retard à aujourd'hui
 function deplacerRetardVersAujourdhui() {
   console.log("Fonction deplacerRetardVersAujourdhui exécutée");
   
@@ -925,6 +995,7 @@ function deplacerRetardVersAujourdhui() {
       if (task.deadline < aujourdhuiStr) {
         console.log(`  - Tâche en retard détectée, modification de la date de ${task.deadline} à ${aujourdhuiStr}`);
         task.deadline = aujourdhuiStr;
+        task.log.push(`Date limite déplacée à aujourd'hui (${aujourdhuiStr}) le ${new Date().toLocaleString('fr-FR')}`);
         modificationEffectuee = true;
         compteur++;
       } else {
@@ -1075,7 +1146,8 @@ function collectSubtasks() {
 }
 
 // Initialisation
-initTinyMCE();
+// Ne pas initialiser TinyMCE au démarrage, mais seulement au clic
+// initTinyMCE();
 renderTasksFiltered();
 updateTagSuggestions();
 
@@ -1159,3 +1231,121 @@ document.addEventListener('DOMContentLoaded', function() {
     addSubtaskBtn.addEventListener('click', addSubtask);
   }
 });
+
+function initTinyMCE() {
+  // Vérifier si TinyMCE est disponible
+  if (typeof tinymce === 'undefined') {
+    console.error('TinyMCE is not loaded. Cannot initialize editor.');
+    return;
+  }
+  
+  // Si TinyMCE est déjà initialisé, ne rien faire
+  if (tinyMCEInitialized) {
+    console.log('TinyMCE already initialized');
+    return;
+  }
+  
+  console.log('Initializing TinyMCE...');
+  
+  // Initialiser TinyMCE avec une configuration simplifiée pour éviter les erreurs
+  tinymce.init({
+    selector: '#modal-task-description',
+    height: 300,
+    menubar: false,
+    plugins: 'lists link',  // Plugins simplifiés
+    toolbar: 'undo redo | bold italic | bullist numlist | link',
+    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+    setup: function(editor) {
+      editor.on('init', function() {
+        console.log('TinyMCE editor initialized successfully');
+        tinyMCEInitialized = true;
+        
+        // Récupérer l'index de la tâche depuis le champ caché
+        const taskIndexField = document.getElementById('modal-task-index');
+        if (taskIndexField && taskIndexField.value) {
+          const taskIndex = parseInt(taskIndexField.value);
+          if (!isNaN(taskIndex) && taskIndex >= 0 && taskIndex < tasks.length) {
+            const task = tasks[taskIndex];
+            if (task && task.description) {
+              editor.setContent(task.description); // TinyMCE gère l'échappement
+            }
+          }
+        }
+      });
+    }
+  });
+}
+
+function exportTasksToJson() {
+  // Créer un objet Blob avec le contenu JSON
+  const tasksJson = JSON.stringify(tasks, null, 2);
+  const blob = new Blob([tasksJson], { type: 'application/json' });
+  
+  // Créer une URL pour le Blob
+  const url = URL.createObjectURL(blob);
+  
+  // Créer un élément <a> pour déclencher le téléchargement
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tasks_export_${new Date().toISOString().split('T')[0]}.json`;
+  
+  // Ajouter l'élément au document, cliquer dessus, puis le supprimer
+  document.body.appendChild(a);
+  a.click();
+  
+  // Nettoyer
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+}
+
+function importTasksFromJson(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    try {
+      // Analyser le contenu JSON
+      const importedTasks = JSON.parse(e.target.result);
+      
+      // Vérifier que le contenu est un tableau
+      if (!Array.isArray(importedTasks)) {
+        alert('Format de fichier invalide. Le fichier doit contenir un tableau de tâches.');
+        return;
+      }
+      
+      // Demander confirmation avant de remplacer les tâches existantes
+      if (confirm(`Voulez-vous importer ${importedTasks.length} tâches ? Cela remplacera toutes les tâches existantes.`)) {
+        // Remplacer les tâches existantes par les tâches importées
+        tasks = importedTasks;
+        
+        // Sauvegarder les tâches dans le localStorage
+        saveTasks();
+        
+        // Rafraîchir l'affichage
+        renderTasksFiltered();
+        
+        alert('Import réussi !');
+      }
+    } catch (error) {
+      alert(`Erreur lors de l'analyse du fichier JSON : ${error.message}`);
+    }
+  };
+  
+  reader.onerror = function() {
+    alert('Erreur lors de la lecture du fichier.');
+  };
+  
+  // Lire le fichier comme texte
+  reader.readAsText(file);
+  
+  // Réinitialiser l'input file pour permettre de sélectionner le même fichier à nouveau si nécessaire
+  event.target.value = '';
+}
+
+// Variables pour TinyMCE
+let tinyMCEInitialized = false;
+let tinyMCEPlaceholder = 'Cliquez ici pour ajouter une description détaillée...';

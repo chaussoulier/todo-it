@@ -2,7 +2,7 @@
 
 # 🗂️ Todo It - L'application de gestion de tâches simple et efficace
 
-v.1.0.2
+v.1.0.3
 
 Todo It est une petite application web développée en HTML, CSS et JavaScript vanilla. Elle a pour but de t'aider à organiser tes tâches du quotidien avec une interface claire, des statuts personnalisables, des deadlines visuelles et même un système de sous-tâches 💪
 
@@ -15,23 +15,37 @@ Todo It est une petite application web développée en HTML, CSS et JavaScript v
 - ✅ Identification des composants existants (HTML/CSS/JS vanilla)
 - ✅ Établissement d'une liste de fonctionnalités à développer
 
-### 2. Itération 1: Améliorations de l'interface utilisateur (En cours)
-- ⏳ Ajouter un footer avec la version actuelle
-- ⏳ Revoir l'alignement des boutons import/export pour qu'il soit côte à côte en haut à droite.
-- ⏳ Rendre la description longue des tâches plus discrète
-- ⏳ Améliorer la navigation entre les différentes vues (aujourd'hui, demain, etc.)
+### 2. Itération 1: Améliorations de l'interface utilisateur (Terminé)
+- ✅ Ajouter un footer avec la version actuelle
+- ✅ Revoir l'alignement des boutons import/export pour qu'il soit côte à côte en haut à droite.
+- ✅ Rendre la description longue des tâches plus discrète
+- ✅ Améliorer la navigation entre les différentes vues (aujourd'hui, demain, etc.)
+- ✅ Empêcher l'interprétation HTML dans les descriptions de tâches
+- ✅ Corriger les erreurs liées à TinyMCE
+- ✅ Améliorer l'alignement des boutons import/export
 
-### 3. Itération 2: Fonctionnalités de gestion des tâches
+### 3. Itération 2: Fonctionnalités de gestion des tâches (En cours)
 - 🔲 Ajouter la possibilité de marquer une tâche comme "tâche de fond" (non réalisable en une journée)
-- 🔲 Implémenter la gestion du degré d'importance des tâches
-- 🔲 Enregistrer la date de traitement pour les tâches terminées
-- 🔲 Empêcher qu'une tâche terminée soit considérée en retard
+- ✅ Implémenter la gestion du degré d'importance des tâches
+- ✅ Enregistrer la date de traitement pour les tâches terminées
+- ✅ Empêcher qu'une tâche terminée soit considérée en retard
+- ✅ Mettre en place un système de journalisation des actions utilisateur
 
 ### 4. Itération 3: Fonctionnalités avancées
 - 🔲 Créer des tâches récurrentes
 - 🔲 Permettre la définition d'une date de début et de fin pour les tâches
-- 🔲 Mettre en place un système de journalisation des actions utilisateur
 - 🔲 Améliorer le système de sauvegarde locale dans le navigateur
+
+## 📍 Fonctionnalités récentes
+
+### Degré d'importance des tâches
+
+Tu peux maintenant attribuer un degré d'importance à tes tâches lors de leur création ou modification :
+- ! : Importance basse
+- !! : Importance moyenne
+- !!! : Importance élevée
+
+Le degré d'importance est combiné avec le statut de la tâche pour créer un score d'importance total (de 2 à 6) qui t'aide à prioriser ton travail. Ce score est visible en survolant l'indicateur d'importance dans la carte de tâche.
 
 ### 5. Itération 4: Optimisation et finalisation
 - 🔲 Optimiser les performances de l'application

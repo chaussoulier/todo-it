@@ -30,7 +30,7 @@
           <div class="col-md-4">
             <input type="text" class="form-control" id="task-title" placeholder="Titre" required>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
             <input type="text" class="form-control" id="task-tag" placeholder="Tag (ex : perso)" list="tag-suggestions">
             <datalist id="tag-suggestions"></datalist>
           </div>
@@ -40,6 +40,13 @@
               <option value="À lire">À lire</option>
               <option value="À challenger">À challenger</option>
               <option value="En cours">En cours</option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <select class="form-select" id="task-importance">
+              <option value="!" selected>!</option>
+              <option value="!!">!!</option>
+              <option value="!!!">!!!</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -100,6 +107,7 @@
       <div class="col-md-4">
         <label for="sort-by" class="form-label">Tri :</label>
         <select id="sort-by" class="form-select">
+          <option value="importance" selected>Par importance</option>
           <option value="deadline">Par deadline</option>
           <option value="titre">Par titre</option>
           <option value="tag">Par tag</option>
@@ -211,16 +219,26 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <input type="hidden" id="modal-task-index">
-           <div class="col-md-6 mb-3">
-              <label for="modal-task-deadline" class="form-label">Date limite</label>
-              <div class="d-flex">
-                <input type="date" class="form-control" id="modal-task-deadline">
-                <div class="ms-2 d-flex">
-                  <button type="button" class="btn btn-sm btn-dater btn-outline-primary me-1" id="btn-tomorrow">Demain</button>
-                  <button type="button" class="btn btn-sm btn-dater btn-outline-primary me-1" id="btn-day-after">Après-demain</button>
-                  <button type="button" class="btn btn-sm btn-dater btn-outline-primary" id="btn-next-week">Semaine prochaine</button>
+           <input type="hidden" id="modal-task-index">
+            <div class="row mb-3">
+              <div class="col-md-8">
+                <label for="modal-task-deadline" class="form-label">Date limite</label>
+                <div class="d-flex">
+                  <input type="date" class="form-control" id="modal-task-deadline">
+                  <div class="ms-2 d-flex">
+                    <button type="button" class="btn btn-sm btn-dater btn-outline-primary me-1" id="btn-tomorrow">Demain</button>
+                    <button type="button" class="btn btn-sm btn-dater btn-outline-primary me-1" id="btn-day-after">Après-demain</button>
+                    <button type="button" class="btn btn-sm btn-dater btn-outline-primary" id="btn-next-week">Semaine prochaine</button>
+                  </div>
                 </div>
+              </div>
+              <div class="col-md-4">
+                <label for="modal-task-importance" class="form-label">Importance</label>
+                <select class="form-select" id="modal-task-importance">
+                  <option value="!">!</option>
+                  <option value="!!">!!</option>
+                  <option value="!!!">!!!</option>
+                </select>
               </div>
             </div>
           <div class="mb-3">
@@ -286,7 +304,21 @@
   <script src="config.js"></script>
   <script>
     // Utiliser la clé API depuis le fichier de configuration
-    document.write('<script src="https://cdn.tiny.cloud/1/' + config.tinyMCEApiKey + '/tinymce/6/tinymce.min.js" referrerpolicy="origin"><\/script>');
+    (function() {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.tiny.cloud/1/' + config.tinyMCEApiKey + '/tinymce/6/tinymce.min.js';
+      script.referrerPolicy = 'origin';
+      // Attendre que le script soit chargé avant d'initialiser TinyMCE
+      script.onload = function() {
+        // S'assurer que TinyMCE est disponible
+        if (typeof tinymce !== 'undefined') {
+          console.log('TinyMCE loaded successfully');
+          // Préparer le champ de description pour TinyMCE
+          setupDescriptionField();
+        }
+      };
+      document.head.appendChild(script);
+    })();
   </script>
   <script src="script.js"></script>
 </body>

@@ -65,6 +65,10 @@ h4 {
   overflow: hidden;
 }
 
+.nav-tabs {
+  border: none;
+}
+
 .nav-tabs-wrapper {
   border-radius: 10px;
   overflow: hidden;
@@ -154,14 +158,16 @@ h4 {
   border-color: #3a56d4;
 }
 
-.btn-success {
-  background-color: #10b981;
-  border-color: #10b981;
+.btn-success, .btn-success:focus {
+  background-color: #fff;
+  border: solid 1px #10b981;
+  color: #10b981;
 }
 
-.btn-success:hover, .btn-success:focus {
+.btn-success:hover {
   background-color: #0ea271;
   border-color: #0ea271;
+  color: #fff;
 }
 
 .btn-danger {
@@ -284,30 +290,70 @@ h4 {
 .importance {
   display: inline-block;
   margin-left: 0.5rem;
-  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  padding: 0.2rem 0.2rem;
+  border-radius: 15%;
+  transition: all 0.2s ease;
+  min-width: 1.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.importance:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Couleurs selon le score d'importance */
+.importance[title*="2/6"] {
+  border: 1px solid #718096; /* Gris - importance faible */
+  color: #718096;
+}
+.importance[title*="3/6"] {
+  border: 1px solid #4299e1; /* Bleu - importance moyenne-faible */
+  color: #4299e1;
+}
+.importance[title*="4/6"] {
+  border: 1px solid #10b981; /* Vert - importance moyenne */
+  color: #10b981;
+}
+.importance[title*="5/6"] {
+  border: 1px solid #ecc94b; /* Jaune - importance moyenne-u00e9levu00e9e */
+  color: #ecc94b;
+}
+.importance[title*="6/6"] {
+  border: 1px solid #e53e3e; /* Rouge - importance u00e9levu00e9e */
   color: #e53e3e;
 }
 
 /* Styles pour les différents statuts */
-.task-card.afaire {
-  border-left: 4px solid #3b82f6;
+/* Styles pour les différentes importances des tâches à faire */
+.task-card[data-importance="2"] {
+  border-left: 4px solid #718096; /* Gris - importance faible */
+}
+.task-card[data-importance="3"] {
+  border-left: 4px solid #4299e1; /* Bleu - importance moyenne-faible */
+}
+.task-card[data-importance="4"] {
+  border-left: 4px solid #10b981; /* Vert - importance moyenne */
+}
+.task-card[data-importance="5"] {
+  border-left: 4px solid #ecc94b; /* Jaune - importance moyenne-élevée */
+}
+.task-card.afaire[data-importance="6"] {
+  border-left: 4px solid #e53e3e; /* Rouge - importance élevée */
 }
 
-.task-card.alire {
-  border-left: 4px solid #8b5cf6;
-}
-
-.task-card.achallenger {
-  border-left: 4px solid #f59e0b;
-}
-
-.task-card.encours {
-  border-left: 4px solid #f59e0b;
-}
-
-.task-card.terminee {
-  border-left: 4px solid #10b981;
-  opacity: 0.7;
+/* Date de complétion */
+.completed-date {
+  font-size: 0.85rem;
+  color: #10b981;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #ecfdf5;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 /* Tags */
@@ -468,6 +514,22 @@ h4 {
   background-color: #f8f9fa;
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+/* Style pour les descriptions de tâches en texte brut */
+.task-description-pre {
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #495057;
+  overflow: auto;
+  max-height: 150px;
 }
 
 .description-placeholder:hover {

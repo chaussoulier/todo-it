@@ -33,16 +33,23 @@
           <div class="col-md-4">
             <input type="text" class="form-control" id="task-title" placeholder="Titre" required>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
             <input type="text" class="form-control" id="task-tag" placeholder="Tag (ex : perso)" list="tag-suggestions">
             <datalist id="tag-suggestions"></datalist>
           </div>
           <div class="col-md-2">
             <select class="form-select" id="task-statut">
-              <option value="à faire" selected>à faire</option>
-              <option value="à lire">à lire</option>
-              <option value="à challenger">à challenger</option>
+              <option value="À faire" selected>À faire</option>
+              <option value="À lire">À lire</option>
+              <option value="À challenger">À challenger</option>
               <option value="En cours">En cours</option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <select class="form-select" id="task-importance">
+              <option value="!" selected>!</option>
+              <option value="!!">!!</option>
+              <option value="!!!">!!!</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -129,7 +136,8 @@
         </div>
         <div class="modal-body">
           <input type="hidden" id="modal-task-index">
-           <div class="col-md-6 mb-3">
+          <div class="row mb-3">
+            <div class="col-md-8">
               <label for="modal-task-deadline" class="form-label">Date limite</label>
               <div class="d-flex">
                 <input type="date" class="form-control" id="modal-task-deadline">
@@ -140,6 +148,15 @@
                 </div>
               </div>
             </div>
+            <div class="col-md-4">
+              <label for="modal-task-importance" class="form-label">Importance</label>
+              <select class="form-select" id="modal-task-importance">
+                <option value="!">!</option>
+                <option value="!!">!!</option>
+                <option value="!!!">!!!</option>
+              </select>
+            </div>
+          </div>
           <div class="mb-3">
             <label for="modal-task-title" class="form-label">Titre</label>
             <input type="text" class="form-control" id="modal-task-title">
@@ -178,7 +195,21 @@
   <script src="config.js"></script>
   <script>
     // Utiliser la clé API depuis le fichier de configuration
-    document.write('<script src="https://cdn.tiny.cloud/1/' + config.tinyMCEApiKey + '/tinymce/6/tinymce.min.js" referrerpolicy="origin"><\/script>');
+    (function() {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.tiny.cloud/1/' + config.tinyMCEApiKey + '/tinymce/6/tinymce.min.js';
+      script.referrerPolicy = 'origin';
+      // Attendre que le script soit chargé avant d'initialiser TinyMCE
+      script.onload = function() {
+        // S'assurer que TinyMCE est disponible
+        if (typeof tinymce !== 'undefined') {
+          console.log('TinyMCE loaded successfully');
+          // Préparer le champ de description pour TinyMCE
+          setupDescriptionField();
+        }
+      };
+      document.head.appendChild(script);
+    })();
   </script>
   <script>
     // Définir la date de demain par défaut pour le champ deadline
