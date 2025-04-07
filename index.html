@@ -17,7 +17,10 @@
   <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1>📝 Todo It</h1>
-      <div class="d-flex gap-2">
+      <div class="user-auth-container" id="user-info">
+        <button id="login-button" class="btn btn-primary">Se connecter avec Google</button>
+      </div>
+      <div class="d-flex gap-2 import-export-container">
         <button id="export-json-btn" class="btn btn-outline-secondary">📤 Exporter JSON</button>
         <button id="import-json-btn" class="btn btn-outline-secondary">📥 Importer JSON</button>
         <input type="file" id="import-json-input" accept=".json" style="display: none;">
@@ -25,7 +28,7 @@
     </div>
 
     <div class="row mb-4">
-      <div class="col-md-9">
+      <div class="col-md-12">
         <form id="task-form" class="row g-3">
           <div class="col-md-4">
             <input type="text" class="form-control" id="task-title" placeholder="Titre" required>
@@ -280,6 +283,94 @@
               <option value="Terminée">Terminée</option>
             </select>
           </div>
+          
+          <!-- Section de récurrence -->
+          <div class="mb-3" id="recurrence-section">
+            <div class="d-flex justify-content-between align-items-center">
+              <label class="form-label mb-0">Récurrence</label>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="enable-recurrence">
+                <label class="form-check-label" for="enable-recurrence">Activer</label>
+              </div>
+            </div>
+            <div id="recurrence-options" class="mt-2" style="display: none;">
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <label for="recurrence-type" class="form-label small">Type de récurrence</label>
+                  <select class="form-select form-select-sm" id="recurrence-type">
+                    <option value="daily">Quotidienne</option>
+                    <option value="weekly">Hebdomadaire</option>
+                    <option value="monthly">Mensuelle</option>
+                    <option value="yearly">Annuelle</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label for="recurrence-interval" class="form-label small">Intervalle</label>
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" id="recurrence-interval" min="1" value="1">
+                    <span class="input-group-text" id="interval-unit">jour(s)</span>
+                  </div>
+                </div>
+              </div>
+              <div class="row" id="weekly-options" style="display: none;">
+                <div class="col-12 mb-2">
+                  <label class="form-label small">Jours de la semaine</label>
+                  <div class="d-flex flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-1" value="1">
+                      <label class="form-check-label" for="weekday-1">Lun</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-2" value="2">
+                      <label class="form-check-label" for="weekday-2">Mar</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-3" value="3">
+                      <label class="form-check-label" for="weekday-3">Mer</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-4" value="4">
+                      <label class="form-check-label" for="weekday-4">Jeu</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-5" value="5">
+                      <label class="form-check-label" for="weekday-5">Ven</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-6" value="6">
+                      <label class="form-check-label" for="weekday-6">Sam</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-0" value="0">
+                      <label class="form-check-label" for="weekday-0">Dim</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <label for="recurrence-end-type" class="form-label small">Fin de récurrence</label>
+                  <select class="form-select form-select-sm" id="recurrence-end-type">
+                    <option value="never">Jamais</option>
+                    <option value="after">Après un nombre d'occurrences</option>
+                    <option value="on-date">À une date précise</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-2" id="recurrence-end-value-container">
+                  <!-- Le contenu sera ajouté dynamiquement en fonction du type de fin -->
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Section du journal des actions -->
+          <div class="mb-3">
+            <label class="form-label">Historique des actions</label>
+            <div id="task-log-container" class="task-log-container">
+              <!-- Les entrées du journal seront ajoutées ici dynamiquement -->
+              <div class="text-muted small">Aucune action enregistrée</div>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
@@ -294,7 +385,7 @@
     <div class="container">
       <div class="row">
         <div class="col-12">
-          <p class="text-muted small mb-0">© 2025 Todo It - v.1.0.2</p>
+          <p class="text-muted small mb-0">© 2025 Todo It - v.<span id="app-version"></span></p>
         </div>
       </div>
     </div>
@@ -303,6 +394,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   <script src="config.js"></script>
   <script>
+    document.getElementById('app-version').textContent = version;
     // Utiliser la clé API depuis le fichier de configuration
     (function() {
       var script = document.createElement('script');
@@ -319,6 +411,14 @@
       };
       document.head.appendChild(script);
     })();
+  </script>
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script type="module">
+    import firebaseConfig from './firebase-config.js';
+    import { initFirebase } from './firebase-service.js';
+    
+    // Initialiser Firebase au chargement de la page
+    document.addEventListener('DOMContentLoaded', initFirebase);
   </script>
   <script src="script.js"></script>
 </body>

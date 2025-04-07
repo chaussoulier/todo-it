@@ -9,7 +9,7 @@ const lateColumn4 = document.getElementById('late-column-4');
 const completedTasks = document.getElementById('completed-tasks');
 
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-let isDetailedView = true; // Par défaut, on est en vue détaillée
+let isDetailedView = false; // Par défaut, on est en vue détaillée
 let currentEditingTaskIndex = null; // Index de la tâche en cours d'édition
 
 function saveTasks() {
@@ -745,6 +745,28 @@ function updateTaskStatut(index, newStatut) {
   renderTasksFiltered();
 }
 
+function renderTaskLog(task) {
+  const logContainer = document.getElementById('task-log-container');
+  if (!logContainer) return;
+  
+  // Vider le contenu précédent
+  logContainer.innerHTML = '';
+  
+  // Vérifier si un journal existe
+  if (!task.log || task.log.length === 0) {
+    logContainer.innerHTML = '<div class="text-muted small">Aucune action enregistrée</div>';
+    return;
+  }
+  
+  // Afficher les entrées du journal (du plus récent au plus ancien)
+  task.log.slice().reverse().forEach(entry => {
+    const logEntry = document.createElement('div');
+    logEntry.className = 'task-log-entry';
+    logEntry.textContent = entry;
+    logContainer.appendChild(logEntry);
+  });
+}
+
 function openTaskDetailModal(index) {
   // S'assurer que l'index est un nombre
   index = parseInt(index, 10);
@@ -806,8 +828,14 @@ function openTaskDetailModal(index) {
   document.getElementById('modal-task-statut').value = task.statut;
   document.getElementById('modal-task-importance').value = task.importance || '!';
   
+  // Afficher le journal des actions
+  renderTaskLog(task);
+  
   // Afficher les sous-tâches
   renderSubtasks(task.etapes || []);
+  
+  // Charger les paramètres de récurrence
+  loadRecurrenceSettings(task.recurrence);
   
   updateModalTagSuggestions();
   
@@ -816,42 +844,115 @@ function openTaskDetailModal(index) {
   document.getElementById('btn-day-after').onclick = () => setQuickDeadline(2);
   document.getElementById('btn-next-week').onclick = () => setQuickDeadlineNextWeek();
   
+  // Initialiser les options de récurrence
+  initRecurrenceOptions();
+  
   // Afficher le modal
   const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
   modal.show();
 }
 
 function saveTaskDetails() {
-  const index = parseInt(document.getElementById('modal-task-index').value);
-  const task = tasks[index];
+  const taskIndexField = document.getElementById('modal-task-index');
+  const taskIndex = parseInt(taskIndexField.value);
   
-  task.titre = document.getElementById('modal-task-title').value.trim();
-  
-  // Récupérer le contenu de la description
-  const descriptionField = document.getElementById('modal-task-description');
-  
-  if (tinyMCEInitialized && tinymce.get('modal-task-description')) {
-    // Si TinyMCE est initialisé, récupérer son contenu
-    task.description = tinymce.get('modal-task-description').getContent();
-  } else if (descriptionField.value !== tinyMCEPlaceholder) {
-    // Sinon, récupérer la valeur du textarea si ce n'est pas le placeholder
-    task.description = descriptionField.value.trim();
-  } else {
-    // Si c'est le placeholder, mettre une chaîne vide
-    task.description = '';
+  if (isNaN(taskIndex) || taskIndex < 0 || taskIndex >= tasks.length) {
+    console.error("Index de tâche invalide:", taskIndex);
+    return;
   }
   
-  task.tag = document.getElementById('modal-task-tag').value.trim();
-  task.deadline = document.getElementById('modal-task-deadline').value;
-  task.statut = document.getElementById('modal-task-statut').value;
-  task.importance = document.getElementById('modal-task-importance').value || '!';
+  const task = tasks[taskIndex];
+  const oldTitle = task.titre;
+  const oldStatut = task.statut;
+  const oldDeadline = task.deadline || '';
+  const oldTag = task.tag || '';
+  const oldDescription = task.description || '';
+  const oldImportance = task.importance || '!';
+  const oldRecurrence = task.recurrence || { enabled: false };
   
-  // Récupérer les sous-tâches
-  task.etapes = collectSubtasks();
+  // S'assurer que la tâche a un journal
+  if (!task.log) {
+    task.log = [`Journal créé le ${new Date().toLocaleString('fr-FR')}`];
+  }
+  
+  // Récupérer les nouvelles valeurs
+  const newTitle = document.getElementById('modal-task-title').value.trim();
+  const newTag = document.getElementById('modal-task-tag').value.trim();
+  const newDeadline = document.getElementById('modal-task-deadline').value;
+  const newStatut = document.getElementById('modal-task-statut').value;
+  const newImportance = document.getElementById('modal-task-importance').value;
+  
+  // Récupérer les paramètres de récurrence
+  const newRecurrence = collectRecurrenceSettings();
+  
+  // Récupérer la description depuis TinyMCE si disponible
+  let newDescription = '';
+  if (typeof tinymce !== 'undefined' && tinymce.get('modal-task-description')) {
+    newDescription = tinymce.get('modal-task-description').getContent();
+  } else {
+    const descriptionField = document.getElementById('modal-task-description');
+    // Ne pas sauvegarder le placeholder comme description
+    newDescription = descriptionField.value === tinyMCEPlaceholder ? '' : descriptionField.value;
+  }
+  
+  // Journaliser les modifications
+  const currentDate = new Date().toLocaleString('fr-FR');
+  
+  if (oldTitle !== newTitle) {
+    task.log.push(`Titre modifié de "${oldTitle}" à "${newTitle}" le ${currentDate}`);
+  }
+  
+  if (oldStatut !== newStatut) {
+    task.log.push(`Statut modifié de "${oldStatut}" à "${newStatut}" le ${currentDate}`);
+  }
+  
+  if (oldDeadline !== newDeadline) {
+    task.log.push(`Date limite modifiée de "${oldDeadline}" à "${newDeadline}" le ${currentDate}`);
+  }
+  
+  if (oldTag !== newTag) {
+    task.log.push(`Tag modifié de "${oldTag}" à "${newTag}" le ${currentDate}`);
+  }
+  
+  if (oldImportance !== newImportance) {
+    task.log.push(`Importance modifiée de "${oldImportance}" à "${newImportance}" le ${currentDate}`);
+  }
+  
+  if (oldDescription !== newDescription && (oldDescription || newDescription)) {
+    task.log.push(`Description modifiée le ${currentDate}`);
+  }
+  
+  // Journaliser les modifications de récurrence
+  if (oldRecurrence.enabled !== newRecurrence.enabled) {
+    if (newRecurrence.enabled) {
+      task.log.push(`Récurrence activée le ${currentDate}`);
+    } else {
+      task.log.push(`Récurrence désactivée le ${currentDate}`);
+    }
+  } else if (newRecurrence.enabled && JSON.stringify(oldRecurrence) !== JSON.stringify(newRecurrence)) {
+    task.log.push(`Paramètres de récurrence modifiés le ${currentDate}`);
+  }
+  
+  // Mettre à jour les valeurs de la tâche
+  task.titre = newTitle;
+  task.tag = newTag;
+  task.deadline = newDeadline;
+  task.statut = newStatut;
+  task.description = newDescription;
+  task.importance = newImportance;
+  task.recurrence = newRecurrence;
+  
+  // Mettre à jour les sous-tâches
+  const newEtapes = collectSubtasks();
+  if (JSON.stringify(task.etapes || []) !== JSON.stringify(newEtapes)) {
+    task.log.push(`Sous-tâches modifiées le ${currentDate}`);
+    task.etapes = newEtapes;
+  }
   
   saveTasks();
   renderTasksFiltered();
   
+  // Fermer la modale
   const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
   modal.hide();
 }
@@ -859,6 +960,13 @@ function saveTaskDetails() {
 // Initialisation
 // Ne pas initialiser TinyMCE au démarrage, mais seulement au clic
 // initTinyMCE();
+
+// Initialiser les journaux manquants pour les tâches existantes
+initMissingLogs();
+
+// Vérifier et créer les tâches récurrentes
+processRecurringTasks();
+
 renderTasksFiltered();
 updateTagSuggestions();
 
@@ -942,6 +1050,41 @@ document.addEventListener('DOMContentLoaded', function() {
     addSubtaskBtn.addEventListener('click', addSubtask);
   }
 });
+
+// Fonction pour initialiser les journaux manquants dans les tâches existantes
+function initMissingLogs() {
+  console.log('Initialisation des journaux manquants...');
+  const currentDate = new Date().toLocaleString('fr-FR');
+  let compteur = 0;
+  
+  tasks.forEach(task => {
+    if (!task.log) {
+      task.log = [];
+      compteur++;
+      
+      // Ajouter une entrée initiale basée sur la date de création si disponible
+      if (task.createdAt) {
+        const creationDate = new Date(task.createdAt).toLocaleString('fr-FR');
+        task.log.push(`Créée le ${creationDate}`);
+      } else {
+        task.log.push(`Journal initialisé le ${currentDate}`);
+      }
+      
+      // Si la tâche est terminée et qu'on a une date de complétion, l'ajouter aussi
+      if (task.statut === 'Terminée' && task.completedAt) {
+        const completionDate = new Date(task.completedAt).toLocaleString('fr-FR');
+        task.log.push(`Marquée comme terminée le ${completionDate}`);
+      }
+    }
+  });
+  
+  if (compteur > 0) {
+    console.log(`${compteur} tâches ont été mises à jour avec un journal`);
+    saveTasks();
+  } else {
+    console.log('Toutes les tâches ont déjà un journal');
+  }
+}
 
 function setQuickDeadline(days) {
   const date = new Date();
@@ -1148,6 +1291,13 @@ function collectSubtasks() {
 // Initialisation
 // Ne pas initialiser TinyMCE au démarrage, mais seulement au clic
 // initTinyMCE();
+
+// Initialiser les journaux manquants pour les tâches existantes
+initMissingLogs();
+
+// Vérifier et créer les tâches récurrentes
+processRecurringTasks();
+
 renderTasksFiltered();
 updateTagSuggestions();
 
@@ -1346,6 +1496,396 @@ function importTasksFromJson(event) {
   event.target.value = '';
 }
 
+// Structure de données pour la récurrence
+/*
+recurrence: {
+  enabled: true/false,
+  type: 'daily'/'weekly'/'monthly'/'yearly',
+  interval: 1, // Nombre de jours/semaines/mois/années entre chaque occurrence
+  weekdays: [0, 1, 2, 3, 4, 5, 6], // Jours de la semaine (0 = dimanche, 1 = lundi, etc.) - uniquement pour le type 'weekly'
+  endType: 'never'/'after'/'on-date',
+  endValue: 10 // Nombre d'occurrences ou date de fin (format ISO)
+  lastProcessed: '2023-04-07' // Date de dernière génération (format ISO)
+}
+*/
+
+// Fonction pour initialiser les options de récurrence dans la modale
+function initRecurrenceOptions() {
+  const enableRecurrenceCheckbox = document.getElementById('enable-recurrence');
+  const recurrenceOptions = document.getElementById('recurrence-options');
+  const recurrenceTypeSelect = document.getElementById('recurrence-type');
+  const weeklyOptions = document.getElementById('weekly-options');
+  const intervalUnit = document.getElementById('interval-unit');
+  const recurrenceEndTypeSelect = document.getElementById('recurrence-end-type');
+  const recurrenceEndValueContainer = document.getElementById('recurrence-end-value-container');
+  
+  // Écouteur pour activer/désactiver les options de récurrence
+  enableRecurrenceCheckbox.addEventListener('change', function() {
+    recurrenceOptions.style.display = this.checked ? 'block' : 'none';
+  });
+  
+  // Écouteur pour le type de récurrence
+  recurrenceTypeSelect.addEventListener('change', function() {
+    // Mettre à jour l'unité d'intervalle
+    updateIntervalUnit(this.value);
+    
+    // Afficher/masquer les options hebdomadaires
+    weeklyOptions.style.display = this.value === 'weekly' ? 'flex' : 'none';
+  });
+  
+  // Écouteur pour le type de fin de récurrence
+  recurrenceEndTypeSelect.addEventListener('change', function() {
+    updateEndValueContainer(this.value);
+  });
+  
+  // Initialiser l'unité d'intervalle
+  updateIntervalUnit(recurrenceTypeSelect.value);
+  
+  // Initialiser le conteneur de valeur de fin
+  updateEndValueContainer(recurrenceEndTypeSelect.value);
+}
+
+// Fonction pour mettre à jour l'unité d'intervalle en fonction du type de récurrence
+function updateIntervalUnit(recurrenceType) {
+  const intervalUnit = document.getElementById('interval-unit');
+  
+  switch(recurrenceType) {
+    case 'daily':
+      intervalUnit.textContent = 'jour(s)';
+      break;
+    case 'weekly':
+      intervalUnit.textContent = 'semaine(s)';
+      break;
+    case 'monthly':
+      intervalUnit.textContent = 'mois';
+      break;
+    case 'yearly':
+      intervalUnit.textContent = 'année(s)';
+      break;
+  }
+}
+
+// Fonction pour mettre à jour le conteneur de valeur de fin en fonction du type de fin
+function updateEndValueContainer(endType) {
+  const container = document.getElementById('recurrence-end-value-container');
+  container.innerHTML = '';
+  
+  switch(endType) {
+    case 'never':
+      // Pas besoin d'ajouter de champ supplémentaire
+      break;
+    case 'after':
+      // Ajouter un champ pour le nombre d'occurrences
+      const occurrencesLabel = document.createElement('label');
+      occurrencesLabel.className = 'form-label small';
+      occurrencesLabel.setAttribute('for', 'recurrence-end-occurrences');
+      occurrencesLabel.textContent = 'Nombre d\'occurrences';
+      
+      const occurrencesInput = document.createElement('input');
+      occurrencesInput.type = 'number';
+      occurrencesInput.className = 'form-control form-control-sm';
+      occurrencesInput.id = 'recurrence-end-occurrences';
+      occurrencesInput.min = '1';
+      occurrencesInput.value = '10';
+      
+      container.appendChild(occurrencesLabel);
+      container.appendChild(occurrencesInput);
+      break;
+    case 'on-date':
+      // Ajouter un champ pour la date de fin
+      const dateLabel = document.createElement('label');
+      dateLabel.className = 'form-label small';
+      dateLabel.setAttribute('for', 'recurrence-end-date');
+      dateLabel.textContent = 'Date de fin';
+      
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.className = 'form-control form-control-sm';
+      dateInput.id = 'recurrence-end-date';
+      
+      // Définir la date par défaut à 3 mois dans le futur
+      const defaultEndDate = new Date();
+      defaultEndDate.setMonth(defaultEndDate.getMonth() + 3);
+      dateInput.value = defaultEndDate.toISOString().split('T')[0];
+      
+      container.appendChild(dateLabel);
+      container.appendChild(dateInput);
+      break;
+  }
+}
+
+// Fonction pour collecter les paramètres de récurrence depuis le formulaire
+function collectRecurrenceSettings() {
+  const enableRecurrence = document.getElementById('enable-recurrence').checked;
+  
+  if (!enableRecurrence) {
+    return { enabled: false };
+  }
+  
+  const recurrenceType = document.getElementById('recurrence-type').value;
+  const interval = parseInt(document.getElementById('recurrence-interval').value, 10) || 1;
+  const endType = document.getElementById('recurrence-end-type').value;
+  
+  let weekdays = [];
+  if (recurrenceType === 'weekly') {
+    // Collecter les jours de la semaine sélectionnés
+    const weekdayCheckboxes = document.querySelectorAll('.weekday-checkbox:checked');
+    weekdays = Array.from(weekdayCheckboxes).map(checkbox => parseInt(checkbox.value, 10));
+    
+    // Si aucun jour n'est sélectionné, utiliser le jour actuel
+    if (weekdays.length === 0) {
+      const today = new Date().getDay(); // 0 = dimanche, 1 = lundi, etc.
+      weekdays = [today];
+      document.getElementById(`weekday-${today}`).checked = true;
+    }
+  }
+  
+  let endValue;
+  switch(endType) {
+    case 'never':
+      endValue = null;
+      break;
+    case 'after':
+      endValue = parseInt(document.getElementById('recurrence-end-occurrences').value, 10) || 10;
+      break;
+    case 'on-date':
+      endValue = document.getElementById('recurrence-end-date').value;
+      break;
+  }
+  
+  return {
+    enabled: true,
+    type: recurrenceType,
+    interval: interval,
+    weekdays: weekdays,
+    endType: endType,
+    endValue: endValue,
+    lastProcessed: new Date().toISOString().split('T')[0] // Date actuelle
+  };
+}
+
+// Fonction pour charger les paramètres de récurrence dans le formulaire
+function loadRecurrenceSettings(recurrence) {
+  if (!recurrence || !recurrence.enabled) {
+    document.getElementById('enable-recurrence').checked = false;
+    document.getElementById('recurrence-options').style.display = 'none';
+    return;
+  }
+  
+  // Activer la récurrence
+  document.getElementById('enable-recurrence').checked = true;
+  document.getElementById('recurrence-options').style.display = 'block';
+  
+  // Définir le type de récurrence
+  const recurrenceTypeSelect = document.getElementById('recurrence-type');
+  recurrenceTypeSelect.value = recurrence.type || 'daily';
+  updateIntervalUnit(recurrenceTypeSelect.value);
+  
+  // Définir l'intervalle
+  document.getElementById('recurrence-interval').value = recurrence.interval || 1;
+  
+  // Définir les jours de la semaine pour la récurrence hebdomadaire
+  if (recurrence.type === 'weekly') {
+    document.getElementById('weekly-options').style.display = 'flex';
+    
+    // Décocher toutes les cases
+    document.querySelectorAll('.weekday-checkbox').forEach(checkbox => {
+      checkbox.checked = false;
+    });
+    
+    // Cocher les jours sélectionnés
+    if (recurrence.weekdays && recurrence.weekdays.length > 0) {
+      recurrence.weekdays.forEach(day => {
+        const checkbox = document.getElementById(`weekday-${day}`);
+        if (checkbox) {
+          checkbox.checked = true;
+        }
+      });
+    }
+  } else {
+    document.getElementById('weekly-options').style.display = 'none';
+  }
+  
+  // Définir le type de fin
+  const endTypeSelect = document.getElementById('recurrence-end-type');
+  endTypeSelect.value = recurrence.endType || 'never';
+  updateEndValueContainer(endTypeSelect.value);
+  
+  // Définir la valeur de fin
+  if (recurrence.endType === 'after' && recurrence.endValue) {
+    setTimeout(() => {
+      const occurrencesInput = document.getElementById('recurrence-end-occurrences');
+      if (occurrencesInput) {
+        occurrencesInput.value = recurrence.endValue;
+      }
+    }, 0);
+  } else if (recurrence.endType === 'on-date' && recurrence.endValue) {
+    setTimeout(() => {
+      const dateInput = document.getElementById('recurrence-end-date');
+      if (dateInput) {
+        dateInput.value = recurrence.endValue;
+      }
+    }, 0);
+  }
+}
+
 // Variables pour TinyMCE
 let tinyMCEInitialized = false;
 let tinyMCEPlaceholder = 'Cliquez ici pour ajouter une description détaillée...';
+
+// Fonction pour gérer la création automatique des tâches récurrentes
+function processRecurringTasks() {
+  console.log('Vérification des tâches récurrentes...');
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0]; // Format YYYY-MM-DD
+  let newTasksCreated = 0;
+  
+  tasks.forEach(task => {
+    // Vérifier si la tâche a une récurrence active
+    if (task.recurrence && task.recurrence.enabled) {
+      // Vérifier si la tâche est terminée (on ne génère pas de nouvelles occurrences pour les tâches terminées)
+      if (task.statut === 'Terminée') {
+        return;
+      }
+      
+      // Vérifier si la récurrence a une date de fin et si cette date est passée
+      if (task.recurrence.endType === 'on-date' && task.recurrence.endValue && task.recurrence.endValue < todayStr) {
+        return;
+      }
+      
+      // Vérifier si la récurrence a un nombre d'occurrences et si ce nombre est atteint
+      if (task.recurrence.endType === 'after' && task.recurrence.endValue) {
+        // Compter le nombre d'occurrences déjà générées (la tâche originale + les tâches générées)
+        const occurrenceCount = 1 + (task.generatedOccurrences || 0);
+        if (occurrenceCount >= task.recurrence.endValue) {
+          return;
+        }
+      }
+      
+      // Vérifier si la dernière date de traitement est définie
+      const lastProcessed = task.recurrence.lastProcessed || task.createdAt?.split('T')[0] || todayStr;
+      
+      // Déterminer si une nouvelle occurrence doit être créée
+      let shouldCreateNewOccurrence = false;
+      let nextDate = null;
+      
+      // Calculer la prochaine date en fonction du type de récurrence
+      switch(task.recurrence.type) {
+        case 'daily':
+          // Calculer le nombre de jours depuis la dernière génération
+          const lastProcessedDate = new Date(lastProcessed);
+          const daysSinceLastProcessed = Math.floor((today - lastProcessedDate) / (1000 * 60 * 60 * 24));
+          
+          // Vérifier si l'intervalle est écoulé
+          if (daysSinceLastProcessed >= task.recurrence.interval) {
+            shouldCreateNewOccurrence = true;
+            
+            // Calculer la prochaine date
+            nextDate = new Date(lastProcessed);
+            nextDate.setDate(nextDate.getDate() + task.recurrence.interval);
+          }
+          break;
+          
+        case 'weekly':
+          // Calculer le nombre de semaines depuis la dernière génération
+          const lastProcessedWeek = new Date(lastProcessed);
+          const weeksSinceLastProcessed = Math.floor((today - lastProcessedWeek) / (1000 * 60 * 60 * 24 * 7));
+          
+          // Vérifier si l'intervalle est écoulé
+          if (weeksSinceLastProcessed >= task.recurrence.interval) {
+            // Vérifier si le jour de la semaine actuel est dans la liste des jours sélectionnés
+            const currentDayOfWeek = today.getDay(); // 0 = dimanche, 1 = lundi, etc.
+            if (task.recurrence.weekdays && task.recurrence.weekdays.includes(currentDayOfWeek)) {
+              shouldCreateNewOccurrence = true;
+              
+              // Calculer la prochaine date (aujourd'hui)
+              nextDate = new Date(todayStr);
+            }
+          }
+          break;
+          
+        case 'monthly':
+          // Calculer le nombre de mois depuis la dernière génération
+          const lastProcessedMonth = new Date(lastProcessed);
+          const monthsSinceLastProcessed = (today.getFullYear() - lastProcessedMonth.getFullYear()) * 12 + (today.getMonth() - lastProcessedMonth.getMonth());
+          
+          // Vérifier si l'intervalle est écoulé
+          if (monthsSinceLastProcessed >= task.recurrence.interval) {
+            // Vérifier si le jour du mois correspond
+            if (today.getDate() === lastProcessedMonth.getDate()) {
+              shouldCreateNewOccurrence = true;
+              
+              // Calculer la prochaine date (aujourd'hui)
+              nextDate = new Date(todayStr);
+            }
+          }
+          break;
+          
+        case 'yearly':
+          // Calculer le nombre d'années depuis la dernière génération
+          const lastProcessedYear = new Date(lastProcessed);
+          const yearsSinceLastProcessed = today.getFullYear() - lastProcessedYear.getFullYear();
+          
+          // Vérifier si l'intervalle est écoulé
+          if (yearsSinceLastProcessed >= task.recurrence.interval) {
+            // Vérifier si le jour et le mois correspondent
+            if (today.getDate() === lastProcessedYear.getDate() && today.getMonth() === lastProcessedYear.getMonth()) {
+              shouldCreateNewOccurrence = true;
+              
+              // Calculer la prochaine date (aujourd'hui)
+              nextDate = new Date(todayStr);
+            }
+          }
+          break;
+      }
+      
+      // Créer une nouvelle occurrence si nécessaire
+      if (shouldCreateNewOccurrence && nextDate) {
+        // Créer une copie de la tâche
+        const newTask = JSON.parse(JSON.stringify(task));
+        
+        // Mettre à jour les propriétés de la nouvelle tâche
+        newTask.createdAt = new Date().toISOString();
+        newTask.log = [`Créée automatiquement le ${new Date().toLocaleString('fr-FR')} (récurrence)`];
+        newTask.statut = 'À faire'; // Réinitialiser le statut
+        newTask.completedAt = null; // Réinitialiser la date de complétion
+        
+        // Mettre à jour la date limite si elle existe
+        if (newTask.deadline) {
+          // Calculer la différence entre la date limite et la date de création de la tâche originale
+          const originalCreatedAt = new Date(task.createdAt);
+          const originalDeadline = new Date(task.deadline);
+          const daysDifference = Math.floor((originalDeadline - originalCreatedAt) / (1000 * 60 * 60 * 24));
+          
+          // Appliquer la même différence à la nouvelle tâche
+          const newDeadline = new Date(nextDate);
+          newDeadline.setDate(newDeadline.getDate() + daysDifference);
+          newTask.deadline = newDeadline.toISOString().split('T')[0];
+        }
+        
+        // Ajouter un marqueur indiquant que cette tâche est une occurrence générée
+        newTask.isGeneratedOccurrence = true;
+        
+        // Supprimer la récurrence pour éviter de générer des occurrences en cascade
+        newTask.recurrence = { enabled: false };
+        
+        // Ajouter la nouvelle tâche
+        tasks.push(newTask);
+        newTasksCreated++;
+        
+        // Mettre à jour la date de dernière génération de la tâche originale
+        task.recurrence.lastProcessed = todayStr;
+        
+        // Incrémenter le compteur d'occurrences générées
+        task.generatedOccurrences = (task.generatedOccurrences || 0) + 1;
+      }
+    }
+  });
+  
+  if (newTasksCreated > 0) {
+    console.log(`${newTasksCreated} nouvelles tâches récurrentes créées`);
+    saveTasks();
+  } else {
+    console.log('Aucune nouvelle tâche récurrente à créer aujourd\'hui');
+  }
+}

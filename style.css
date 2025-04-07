@@ -7,6 +7,7 @@ body {
 
 .bg-light {
   background-color: #e4e9f2!important;
+  margin-top: 0px !important;
 }
 
 .container {
@@ -345,6 +346,48 @@ h4 {
   border-left: 4px solid #e53e3e; /* Rouge - importance élevée */
 }
 
+/* Section de récurrence */
+#recurrence-section {
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  border: 1px solid #e9ecef;
+}
+
+#recurrence-options {
+  padding-top: 0.5rem;
+  border-top: 1px dashed #dee2e6;
+  margin-top: 0.5rem;
+}
+
+.weekday-checkbox:checked + label {
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+/* Journal des actions */
+.task-log-container {
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border: 1px solid #e9ecef;
+  border-radius: 0.25rem;
+  background-color: #f8f9fa;
+  font-size: 0.85rem;
+}
+
+.task-log-entry {
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px dotted #e9ecef;
+}
+
+.task-log-entry:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 /* Date de complétion */
 .completed-date {
   font-size: 0.85rem;
@@ -669,4 +712,56 @@ h4 {
   font-size: 0.8rem;
   color: #6c757d;
   margin-bottom: 5px;
+}
+
+/* Styles pour l'authentification Firebase */
+.user-auth-container {
+  display: flex;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-weight: 500;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#logout-button {
+  margin-left: 10px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Ajustements pour le responsive */
+@media (max-width: 768px) {
+  .d-flex.justify-content-between.align-items-center.mb-4 {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .user-auth-container,
+  .import-export-container {
+    margin-top: 10px;
+    width: 100%;
+  }
+  
+  .import-export-container {
+    justify-content: space-between;
+  }
 }

@@ -1,128 +1,69 @@
-# todo-it
-
-# 🗂️ Todo It - L'application de gestion de tâches simple et efficace
+# 📂️ Todo It - L'application de gestion de tâches simple et efficace
 
 v.1.0.3
 
 Todo It est une petite application web développée en HTML, CSS et JavaScript vanilla. Elle a pour but de t'aider à organiser tes tâches du quotidien avec une interface claire, des statuts personnalisables, des deadlines visuelles et même un système de sous-tâches 💪
 
----
-
-## 🛣️ Roadmap du projet
-
-### 1. Analyse initiale (Terminé)
-- ✅ Examen de l'architecture et du contenu du projet
-- ✅ Identification des composants existants (HTML/CSS/JS vanilla)
-- ✅ Établissement d'une liste de fonctionnalités à développer
-
-### 2. Itération 1: Améliorations de l'interface utilisateur (Terminé)
-- ✅ Ajouter un footer avec la version actuelle
-- ✅ Revoir l'alignement des boutons import/export pour qu'il soit côte à côte en haut à droite.
-- ✅ Rendre la description longue des tâches plus discrète
-- ✅ Améliorer la navigation entre les différentes vues (aujourd'hui, demain, etc.)
-- ✅ Empêcher l'interprétation HTML dans les descriptions de tâches
-- ✅ Corriger les erreurs liées à TinyMCE
-- ✅ Améliorer l'alignement des boutons import/export
-
-### 3. Itération 2: Fonctionnalités de gestion des tâches (En cours)
-- 🔲 Ajouter la possibilité de marquer une tâche comme "tâche de fond" (non réalisable en une journée)
-- ✅ Implémenter la gestion du degré d'importance des tâches
-- ✅ Enregistrer la date de traitement pour les tâches terminées
-- ✅ Empêcher qu'une tâche terminée soit considérée en retard
-- ✅ Mettre en place un système de journalisation des actions utilisateur
-
-### 4. Itération 3: Fonctionnalités avancées
-- 🔲 Créer des tâches récurrentes
-- 🔲 Permettre la définition d'une date de début et de fin pour les tâches
-- 🔲 Améliorer le système de sauvegarde locale dans le navigateur
-
-## 📍 Fonctionnalités récentes
-
-### Degré d'importance des tâches
-
-Tu peux maintenant attribuer un degré d'importance à tes tâches lors de leur création ou modification :
-- ! : Importance basse
-- !! : Importance moyenne
-- !!! : Importance élevée
-
-Le degré d'importance est combiné avec le statut de la tâche pour créer un score d'importance total (de 2 à 6) qui t'aide à prioriser ton travail. Ce score est visible en survolant l'indicateur d'importance dans la carte de tâche.
-
-### 5. Itération 4: Optimisation et finalisation
-- 🔲 Optimiser les performances de l'application
-- 🔲 Effectuer des tests utilisateurs et corriger les bugs identifiés
-- 🔲 Préparer la documentation finale
-- 🔲 Déployer la version stable
-
----
+![Todo It Screenshot](screenshot.png)
 
 ## ✨ Fonctionnalités principales
 
 - Ajout, édition et suppression de tâches
 - Statuts personnalisables (À faire, En cours, Terminé, etc.)
-- Affichage intelligent des dates (Aujourd’hui, Demain, etc.)
+- Affichage intelligent des dates (Aujourd'hui, Demain, etc.)
 - Tri par date de création ou par deadline
-- Icônes visuelles selon l’urgence 🔥 ⏰ ✅
+- Icônes visuelles selon l'urgence 🔥 ⏰ ✅
 - Système de sous-tâches (version simple)
+- Tâches récurrentes (quotidienne, hebdomadaire, mensuelle, annuelle)
+- Degré d'importance des tâches (!, !!, !!!)
+- Journal des actions pour chaque tâche
 - Design responsive et agréable
 
----
+## 📚 Guide d'utilisation
+
+### Navigation
+
+L'application propose plusieurs vues pour organiser tes tâches :
+- **Accueil** : Toutes les tâches
+- **Aujourd'hui** : Tâches à faire aujourd'hui
+- **Demain** : Tâches prévues pour demain
+- **Bientôt** : Tâches à venir
+- **En retard** : Tâches qui ont dépassé leur date limite
+
+### Gestion des tâches
+
+1. **Créer une tâche** : Remplis le formulaire en haut de la page et clique sur "Ajouter"
+2. **Modifier une tâche** : Clique sur le titre de la tâche pour ouvrir le modal de détail
+3. **Marquer comme terminée** : Clique sur la case à cocher à gauche de la tâche
+4. **Supprimer une tâche** : Clique sur l'icône de corbeille dans la carte de tâche
+
+### Fonctionnalités avancées
+
+- **Tâches récurrentes** : Dans le modal de détail, active l'option "Récurrence" et configure selon tes besoins
+- **Sous-tâches** : Ajoute des étapes intermédiaires à tes tâches principales
+- **Degré d'importance** : Sélectionne le niveau d'importance (!, !!, !!!) lors de la création ou modification
+- **Journal des actions** : Consulte l'historique des modifications dans le modal de détail
 
 ## 🔧 Stack technique
 
 - HTML5 / CSS3
 - JavaScript vanilla
+- Bootstrap 5
+- TinyMCE pour l'édition de texte riche
 
----
+## 💾 Installation et utilisation
 
-## 📦 À venir
+1. Clone ce dépôt ou télécharge les fichiers
+2. Ouvre `index.html` dans ton navigateur
+3. C'est tout ! L'application fonctionne entièrement en local
 
-- Sauvegarde locale dans le navigateur
-- Vue "Projet" avec tri par catégories
-- Ajout d'une API ou d'un backend (si besoin un jour)
-- Dire qu'une carte est une tâche de fond (non gérable en juste une journée)
-- Possibilité de créer une tâche récurrente
-- Gérer le degré d'importance d'une tâche
-- Une tâche terminée ne peut pas être en retard il faut enregistré la date de traitement
-- Possibilité de créer une tâche avec une date de début et une date de fin
-- Loguer les actions de l'utilisateur sur une tâché, création, modification, action définitive etc.
-- La description longue de la tâche est plus discrète si on a pas encore cliqué sur le champ pour ajouter du texte
-- Revoir l'alignement du bouton import/export
-- Afficher la version en cours en petit dans un footer en bas à gauche.
+## 📝 Développement
 
----
-
-## 🔒 Sécurité
-
-### Gestion des clés API
-
-Si vous ajoutez des fonctionnalités nécessitant des clés API ou des informations sensibles :
-
-1. **Ne jamais** stocker de clés API directement dans le code source
-2. Utiliser un fichier `.env` séparé (qui est ignoré par Git grâce au `.gitignore`)
-3. Pour le développement front-end, considérer l'utilisation d'un proxy serveur pour les appels API sensibles
-
-Exemple de structure recommandée :
-```
-// config.example.js - À inclure dans le dépôt (sans clés réelles)
-const config = {
-  apiKey: "VOTRE_CLE_API_ICI",
-  apiEndpoint: "https://api.example.com"
-};
-
-// config.js - À créer localement (ignoré par Git)
-const config = {
-  apiKey: "ma_vraie_cle_api_123",
-  apiEndpoint: "https://api.example.com"
-};
-```
-
----
+Pour plus d'informations sur le développement du projet, consulte le fichier [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## 🙋‍♂️ À propos
 
-Développé par [Clément](https://github.com/chaussoulier) dans le cadre d’un side project pour apprendre, tester, et organiser la vie débordée d’entrepreneur 👨‍💻
-
----
+Développé par [Clément](https://github.com/chaussoulier) dans le cadre d'un side project pour apprendre, tester, et organiser la vie débordée d'entrepreneur 👨‍💻
 
 ## 📜 Licence
 
