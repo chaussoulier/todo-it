@@ -28,7 +28,8 @@ def menu():
         print("5. Supprimer une tâche")
         print("6. Filtrer par tag")
         print("7. Filtrer par statut")
-        print("8. Quitter")
+        print("8. Importer des tâches")
+        print("9. Quitter")
 
         choix = input("Choix : ")
         if choix == '1':
@@ -46,6 +47,8 @@ def menu():
         elif choix == '7':
             filtrer_par_statut()
         elif choix == '8':
+            importer_taches()
+        elif choix == '9':
             print("👋 À bientôt !")
             break
         else:
@@ -82,18 +85,6 @@ def ajouter_tache():
         "tag": tag,
         "statut": statut,
         "deadline": deadline
-    }
-    taches.append(nouvelle_tache)
-    sauvegarder_taches(taches)
-    print("✅ Tâche ajoutée avec succès.\n")
-
-    taches = charger_taches()
-    nouvelle_tache = {
-        "id": len(taches) + 1,
-        "titre": titre,
-        "description": description,
-        "tag": tag,
-        "statut": statut
     }
     taches.append(nouvelle_tache)
     sauvegarder_taches(taches)
@@ -246,6 +237,40 @@ def filtrer_par_statut():
     print(f"\n📋 Tâches avec le statut '{statut_recherche}':\n")
     for t in taches_filtrees:
         print(f"[{t['id']}] {t['titre']} - {t['statut']} [{t.get('tag', '')}]")
+
+def importer_taches():
+    chemin_fichier = input("Chemin du fichier JSON à importer : ").strip()
+    if not os.path.exists(chemin_fichier):
+        print("❌ Fichier introuvable.")
+        return
+    
+    try:
+        with open(chemin_fichier, 'r') as f:
+            taches_importees = json.load(f)
+        
+        if not isinstance(taches_importees, list):
+            print("❌ Format de fichier invalide. Le fichier doit contenir une liste de tâches.")
+            return
+        
+        taches_actuelles = charger_taches()
+        id_max = max([t.get('id', 0) for t in taches_actuelles], default=0)
+        
+        for tache in taches_importees:
+            # Vérifier que la tâche a les champs requis
+            if not all(key in tache for key in ['titre', 'statut']):
+                continue
+                
+            # Assigner un nouvel ID pour éviter les conflits
+            id_max += 1
+            tache['id'] = id_max
+            taches_actuelles.append(tache)
+        
+        sauvegarder_taches(taches_actuelles)
+        print(f"✅ {len(taches_importees)} tâches importées avec succès.")
+    except json.JSONDecodeError:
+        print("❌ Le fichier n'est pas un JSON valide.")
+    except Exception as e:
+        print(f"❌ Erreur lors de l'importation : {str(e)}")
 
 if __name__ == '__main__':
     menu()
