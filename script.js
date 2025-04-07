@@ -764,6 +764,53 @@ function exportTasksToJson() {
   }, 100);
 }
 
+// Fonction pour importer les tâches depuis un fichier JSON
+function importTasksFromJson(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    try {
+      // Analyser le contenu JSON
+      const importedTasks = JSON.parse(e.target.result);
+      
+      // Vérifier que le contenu est un tableau
+      if (!Array.isArray(importedTasks)) {
+        alert('Format de fichier invalide. Le fichier doit contenir un tableau de tâches.');
+        return;
+      }
+      
+      // Demander confirmation avant de remplacer les tâches existantes
+      if (confirm(`Voulez-vous importer ${importedTasks.length} tâches ? Cela remplacera toutes les tâches existantes.`)) {
+        // Remplacer les tâches existantes par les tâches importées
+        tasks = importedTasks;
+        
+        // Sauvegarder les tâches dans le localStorage
+        saveTasks();
+        
+        // Rafraîchir l'affichage
+        renderTasksFiltered();
+        
+        alert('Import réussi !');
+      }
+    } catch (error) {
+      alert(`Erreur lors de l'analyse du fichier JSON : ${error.message}`);
+    }
+  };
+  
+  reader.onerror = function() {
+    alert('Erreur lors de la lecture du fichier.');
+  };
+  
+  // Lire le fichier comme texte
+  reader.readAsText(file);
+  
+  // Réinitialiser l'input file pour permettre de sélectionner le même fichier à nouveau si nécessaire
+  event.target.value = '';
+}
+
 // Initialisation de TinyMCE
 function initTinyMCE() {
   tinymce.init({
@@ -1029,6 +1076,16 @@ document.addEventListener('DOMContentLoaded', function() {
   const exportJsonBtn = document.getElementById('export-json-btn');
   if (exportJsonBtn) {
     exportJsonBtn.addEventListener('click', exportTasksToJson);
+  }
+  
+  // Initialisation du bouton d'import JSON
+  const importJsonBtn = document.getElementById('import-json-btn');
+  const importJsonInput = document.getElementById('import-json-input');
+  if (importJsonBtn && importJsonInput) {
+    importJsonBtn.addEventListener('click', function() {
+      importJsonInput.click(); // Déclencher le sélecteur de fichier
+    });
+    importJsonInput.addEventListener('change', importTasksFromJson);
   }
   
   // Initialiser la date par défaut
