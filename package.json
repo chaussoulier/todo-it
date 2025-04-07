@@ -1,0 +1,17 @@
+{
+  "name": "todo-it",
+  "version": "1.0.3",
+  "description": "Application de gestion de tâches simple et efficace",
+  "main": "script.js",
+  "scripts": {
+    "start": "serve",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "firebase": "^10.14.1",
+    "serve": "^14.2.1",
+    "web-push": "^3.6.7"
+  },
+  "author": "Clément",
+  "license": "MIT"
+}

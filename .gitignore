@@ -1,0 +1,61 @@
+# Fichiers système
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Fichiers d'environnement et de configuration
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+config.js
+config.json
+secrets.json
+
+# Dossiers de dépendances
+node_modules/
+venv/
+
+# Fichiers de logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# Fichiers de build
+dist/
+build/
+
+# Fichiers d'IDE et éditeurs de texte
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime*
+.project
+
+# Fichiers personnels et temporaires
+notes.txt
+todo.txt
+DEVELOPMENT.md
+*.bak
+*.tmp
+*~
+
+# Fichiers de clés API et d'authentification
+api_keys.js
+api_keys.json
+config.js
+config.json
+*_key.js
+*_key.json
+*_token.js
+*_token.json
+*_secret.js
+*_secret.json

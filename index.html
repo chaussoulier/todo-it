@@ -11,6 +11,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -23,6 +24,7 @@
       <div class="d-flex gap-2 import-export-container">
         <button id="export-json-btn" class="btn btn-outline-secondary">📤 Exporter JSON</button>
         <button id="import-json-btn" class="btn btn-outline-secondary">📥 Importer JSON</button>
+        <button id="notifications-btn" class="btn btn-outline-secondary">🔔 Notifications</button>
         <input type="file" id="import-json-input" accept=".json" style="display: none;">
       </div>
     </div>
@@ -385,7 +387,7 @@
     <div class="container">
       <div class="row">
         <div class="col-12">
-          <p class="text-muted small mb-0">© 2025 Todo It - v.<span id="app-version"></span></p>
+          <p class="text-muted small mb-0"> 2025 Todo It - v.<span id="app-version"></span></p>
         </div>
       </div>
     </div>
@@ -405,20 +407,81 @@
         // S'assurer que TinyMCE est disponible
         if (typeof tinymce !== 'undefined') {
           console.log('TinyMCE loaded successfully');
-          // Préparer le champ de description pour TinyMCE
-          setupDescriptionField();
+          // TinyMCE est chargé, pas besoin d'initialiser ici
+          // L'initialisation se fait dans le script.js quand nécessaire
         }
       };
       document.head.appendChild(script);
     })();
   </script>
   <!-- Firebase App (the core Firebase SDK) -->
+  <script type="module" src="push-service.js"></script>
   <script type="module">
     import firebaseConfig from './firebase-config.js';
     import { initFirebase } from './firebase-service.js';
     
     // Initialiser Firebase au chargement de la page
     document.addEventListener('DOMContentLoaded', initFirebase);
+  </script>
+  <script>
+    // Gérer l'authentification Firebase
+    onAuthStateChanged(auth, async (user) => {
+      const userInfo = document.getElementById('user-info');
+      if (user) {
+        // L'utilisateur est connecté
+        userInfo.innerHTML = `
+          <div class="user-info">
+            <img src="${user.photoURL}" alt="${user.displayName}" class="user-avatar">
+            <span class="user-name">${user.displayName}</span>
+            <button id="logout-button" class="btn btn-outline-secondary btn-sm">Déconnexion</button>
+          </div>
+        `;
+        document.getElementById('logout-button').addEventListener('click', signOutUser);
+        
+        // Initialiser les notifications push si l'utilisateur est connecté
+        try {
+          await initPushNotifications();
+        } catch (error) {
+          console.error('Erreur lors de l\'initialisation des notifications push:', error);
+        }
+        
+        // Charger les tâches de l'utilisateur depuis Firestore
+        try {
+          const userTasks = await loadTasks(user.uid);
+          if (userTasks && userTasks.length > 0) {
+            tasks = userTasks;
+            renderTasksFiltered();
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement des tâches:', error);
+        }
+      } else {
+        // L'utilisateur n'est pas connecté
+        userInfo.innerHTML = `<button id="login-button" class="btn btn-primary">Se connecter avec Google</button>`;
+        document.getElementById('login-button').addEventListener('click', signInWithGoogle);
+      }
+    });
+
+    // Ajouter des écouteurs d'événements pour les boutons d'exportation, d'importation et de notifications
+    document.getElementById('export-json-btn').addEventListener('click', exportTasksToJson);
+    document.getElementById('import-json-btn').addEventListener('click', () => {
+      document.getElementById('import-json-input').click();
+    });
+    document.getElementById('import-json-input').addEventListener('change', importTasksFromJson);
+    document.getElementById('notifications-btn').addEventListener('click', async () => {
+      const permission = await requestNotificationPermission();
+      if (permission) {
+        await initPushNotifications();
+        alert('Notifications activées ! Vous recevrez des rappels pour vos tâches importantes.');
+        // Envoyer une notification de test
+        sendNotification('Todo It - Notifications activées', {
+          body: 'Vous recevrez désormais des notifications pour vos tâches importantes !',
+          icon: '/favicon.ico'
+        });
+      } else {
+        alert('Vous devez autoriser les notifications pour recevoir des rappels de tâches.');
+      }
+    });
   </script>
   <script src="script.js"></script>
 </body>

@@ -573,6 +573,7 @@ function viderTerminees() {
   if (!confirmation) return;
 
   tasks = tasks.filter(task => task.statut !== "Terminée");
+  checkTasksForNotifications();
   saveTasks();
   renderTasksFiltered();
 }
@@ -1733,6 +1734,93 @@ function loadRecurrenceSettings(recurrence) {
 let tinyMCEInitialized = false;
 let tinyMCEPlaceholder = 'Cliquez ici pour ajouter une description détaillée...';
 
+// Fonction pour vérifier les tâches importantes et envoyer des notifications
+async function checkTasksForNotifications() {
+  // Vérifier si les notifications sont disponibles et si le service est importé
+  if (!('Notification' in window) || !('sendNotification' in window)) {
+    console.log('Les notifications ne sont pas disponibles');
+    return;
+  }
+
+  // Importer dynamiquement le service de notifications si nécessaire
+  let sendNotification;
+  try {
+    const module = await import('./push-service.js');
+    sendNotification = module.sendNotification;
+  } catch (error) {
+    console.error('Erreur lors de l\'importation du service de notifications:', error);
+    return;
+  }
+
+  // Vérifier si l'utilisateur a autorisé les notifications
+  if (Notification.permission !== 'granted') {
+    console.log('Permission de notification non accordée');
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Tâches importantes à faire aujourd'hui
+  const importantTodayTasks = tasks.filter(task => {
+    if (task.completed) return false;
+    
+    const deadlineDate = task.deadline ? new Date(task.deadline) : null;
+    if (!deadlineDate) return false;
+    
+    deadlineDate.setHours(0, 0, 0, 0);
+    return deadlineDate.getTime() === today.getTime() && (task.importance === '!!' || task.importance === '!!!');
+  });
+
+  // Tâches en retard
+  const lateTasks = tasks.filter(task => {
+    if (task.completed) return false;
+    
+    const deadlineDate = task.deadline ? new Date(task.deadline) : null;
+    if (!deadlineDate) return false;
+    
+    deadlineDate.setHours(0, 0, 0, 0);
+    return deadlineDate < today;
+  });
+
+  // Tâches importantes à faire demain
+  const importantTomorrowTasks = tasks.filter(task => {
+    if (task.completed) return false;
+    
+    const deadlineDate = task.deadline ? new Date(task.deadline) : null;
+    if (!deadlineDate) return false;
+    
+    deadlineDate.setHours(0, 0, 0, 0);
+    return deadlineDate.getTime() === tomorrow.getTime() && (task.importance === '!!' || task.importance === '!!!');
+  });
+
+  // Envoyer des notifications pour les tâches importantes d'aujourd'hui
+  if (importantTodayTasks.length > 0) {
+    sendNotification('Tâches importantes aujourd\'hui', {
+      body: `Vous avez ${importantTodayTasks.length} tâche(s) importante(s) à accomplir aujourd'hui.`,
+      data: { type: 'today', url: '/today.html' }
+    });
+  }
+
+  // Envoyer des notifications pour les tâches en retard
+  if (lateTasks.length > 0) {
+    sendNotification('Tâches en retard', {
+      body: `Vous avez ${lateTasks.length} tâche(s) en retard.`,
+      data: { type: 'late', url: '/late.html' }
+    });
+  }
+
+  // Envoyer des notifications pour les tâches importantes de demain
+  if (importantTomorrowTasks.length > 0) {
+    sendNotification('Tâches importantes demain', {
+      body: `Vous avez ${importantTomorrowTasks.length} tâche(s) importante(s) prévue(s) pour demain.`,
+      data: { type: 'tomorrow', url: '/tomorrow.html' }
+    });
+  }
+}
+
 // Fonction pour gérer la création automatique des tâches récurrentes
 function processRecurringTasks() {
   console.log('Vérification des tâches récurrentes...');
@@ -1888,4 +1976,7 @@ function processRecurringTasks() {
   } else {
     console.log('Aucune nouvelle tâche récurrente à créer aujourd\'hui');
   }
+  
+  // Vérifier les tâches importantes pour les notifications
+  checkTasksForNotifications();
 }
