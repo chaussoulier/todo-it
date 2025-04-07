@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>ToDo JSON App - V2</title>
+  <title>Todo It</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,108 +14,14 @@
 </head>
 <body>
 
-  <style>
-    #auth-overlay {
-        position: fixed;
-        z-index: 9999;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: linear-gradient(145deg, #1f1f2e, #15151f);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-family: 'Segoe UI', sans-serif;
-        color: white;
-      }
-    
-    #auth-box {
-        background: #27293d;
-        padding: 2rem 2.5rem;
-        border-radius: 12px;
-        box-shadow: 0 0 20px rgba(0,0,0,0.3);
-        text-align: center;
-        width: 100%;
-        max-width: 400px;
-        transition: all 0.3s ease;
-      }
-    
-    #auth-box h2 {
-        margin-bottom: 1.2rem;
-      }
-    
-    #auth-box input {
-        width: 100%;
-        padding: 0.8rem;
-        border: none;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        font-size: 1rem;
-        background: #1a1b2e;
-        color: white;
-      }
-    
-    #auth-box button {
-        width: 100%;
-        padding: 0.8rem;
-        border: none;
-        border-radius: 8px;
-        background-color: #7c3aed;
-        color: white;
-        font-weight: bold;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: background 0.2s ease;
-      }
-    
-    #auth-box button:hover {
-        background-color: #9f48ff;
-      }
-    
-    #error-msg {
-        color: #ff5e5e;
-        font-size: 0.9rem;
-        height: 1rem;
-        margin-top: -0.5rem;
-        margin-bottom: 1rem;
-        opacity: 0;
-        transition: opacity 0.3s;
-      }
-    
-    #error-msg.active {
-        opacity: 1;
-      }
-    </style>
-    
-    <div id="auth-overlay">
-      <div id="auth-box">
-        <h2>🔐 Accès sécurisé</h2>
-        <input type="password" id="passwordInput" placeholder="Entrez le mot de passe" />
-        <div id="error-msg">Mot de passe incorrect</div>
-        <button onclick="checkPassword()">Accéder</button>
-      </div>
-    </div>
-    
-    <script>
-      const goodPassword = "monMotSecret"; // <-- remplace par ton mot de passe
-    
-      function checkPassword() {
-        const input = document.getElementById("passwordInput").value;
-        const error = document.getElementById("error-msg");
-    
-        if (input === goodPassword) {
-          document.getElementById("auth-overlay").style.display = "none";
-        } else {
-          error.classList.add("active");
-          document.getElementById("passwordInput").value = "";
-        }
-      }
-    </script>
-   
   <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1>📝 To-do list Clément</h1>
-      <button id="export-json-btn" class="btn btn-outline-secondary">📤 Exporter JSON</button>
-      <button id="import-json-btn" class="btn btn-outline-secondary">📥 Importer JSON</button>
-      <input type="file" id="import-json-input" accept=".json" style="display: none;">
+      <h1>📝 Todo It</h1>
+      <div class="d-flex gap-2">
+        <button id="export-json-btn" class="btn btn-outline-secondary">📤 Exporter JSON</button>
+        <button id="import-json-btn" class="btn btn-outline-secondary">📥 Importer JSON</button>
+        <input type="file" id="import-json-input" accept=".json" style="display: none;">
+      </div>
     </div>
 
     <div class="row mb-4">
@@ -146,8 +52,45 @@
       </div>
     </div>
 
+    <div class="navigation-container mb-4">
+      <div class="nav-tabs-wrapper">
+        <ul class="nav nav-tabs nav-fill" id="date-filters">
+          <li class="nav-item">
+            <button class="nav-link active" data-date="all">
+              <span class="nav-icon">📃</span>
+              <span class="nav-text">Toutes les dates</span>
+            </button>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="./today.html">
+              <span class="nav-icon">🔥</span>
+              <span class="nav-text">Aujourd'hui</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="./tomorrow.html">
+              <span class="nav-icon">⏰</span>
+              <span class="nav-text">Demain</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="./soon.html">
+              <span class="nav-icon">🗓</span>
+              <span class="nav-text">Bientôt</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="./late.html">
+              <span class="nav-icon">🚨</span>
+              <span class="nav-text">En retard</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <!-- Filtres -->
-    <div class="row mb-4 py-3 bg-light rounded-3">
+    <div class="row mb-4 py-3 rounded-3">
       <div class="col-md-4">
         <label for="filter-tag" class="form-label">Filtrer par tag :</label>
         <select id="filter-tag" class="form-select">
@@ -165,14 +108,6 @@
       <div class="col-md-4 d-flex align-items-end">
         <button id="reset-filters-btn" class="btn btn-outline-secondary">Réinitialiser les filtres</button>
       </div>
-    </div>
-
-    <div class="d-flex gap-2 mb-4" id="date-filters">
-      <button class="btn btn-outline-filter" data-date="all">Toutes les dates</button>
-      <a class="btn btn-outline-filter" href="./today.html">🔥</a>
-      <a class="btn btn-outline-filter" href="./tomorrow.html">⏰</a>
-      <a class="btn btn-outline-filter" href="./soon.html">🗓</a>
-      <a class="btn btn-outline-filter" href="./late.html">🚨</a>
     </div>
 
     <!-- Système de cartes -->
@@ -335,6 +270,17 @@
       </div>
     </div>
   </div>
+
+  <!-- Footer avec version -->
+  <footer class="container-fluid mt-5 py-3 bg-light">
+    <div class="container">
+      <div class="row">
+        <div class="col-12">
+          <p class="text-muted small mb-0">© 2025 Todo It - v.1.0.2</p>
+        </div>
+      </div>
+    </div>
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   <script src="config.js"></script>

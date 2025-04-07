@@ -1,8 +1,12 @@
 body {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+  background-color: #e4e9f2;
   min-height: 100vh;
   color: #2d3748;
+}
+
+.bg-light {
+  background-color: #e4e9f2!important;
 }
 
 .container {
@@ -52,6 +56,84 @@ h4 {
 #task-form input:focus, #task-form select:focus {
   border-color: #3182ce;
   box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15) !important;
+}
+
+/* Navigation styles */
+.navigation-container {
+  margin-top: 1rem;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.nav-tabs-wrapper {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+#date-filters {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+}
+
+#date-filters .nav-item {
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+#date-filters .nav-item:last-child {
+  border-right: none;
+}
+
+#date-filters .nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  color: #6c757d;
+  border: none;
+  border-radius: 0;
+  transition: all 0.3s ease;
+}
+
+#date-filters .nav-link:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+  color: #495057;
+}
+
+#date-filters .nav-link.active {
+  background-color: #E4E9F2;
+  color: #6C757D;
+}
+
+.nav-icon {
+  font-size: 1.2rem;
+  margin-bottom: 0.25rem;
+}
+
+.nav-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Styles pour les anciens boutons (pour compatibilité) */
+.btn-outline-filter {
+  border: 1px solid #e2e8f0;
+  background-color: #fff;
+  color: #4a5568;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-filter:hover {
+  background-color: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.btn-outline-filter.active {
+  background-color: #4299e1;
+  color: white;
+  border-color: #4299e1;
 }
 
 .btn {
@@ -344,6 +426,52 @@ h4 {
   border-radius: 0.25rem;
   margin-top: 8px;
   font-size: 0.9rem;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+  position: relative;
+  max-height: 80px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.task-description-content:hover,
+.task-description-content:focus,
+.task-description-content.expanded {
+  opacity: 1;
+  max-height: 200px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.task-description-content::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 20px;
+  background: linear-gradient(to bottom, rgba(248, 249, 250, 0), rgba(248, 249, 250, 1));
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.task-description-content:hover::after,
+.task-description-content:focus::after,
+.task-description-content.expanded::after {
+  opacity: 0;
+}
+
+/* Style pour le placeholder de la description dans le modal */
+.description-placeholder {
+  color: #6c757d;
+  font-style: italic;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.description-placeholder:hover {
+  background-color: #e9ecef;
 }
 
 .task-description-content img {

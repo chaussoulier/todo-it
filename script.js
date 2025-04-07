@@ -278,6 +278,14 @@ function renderTaskCard(task, index, container) {
     editTitle(this, taskIndex);
   });
   
+  // Ajouter l'écouteur d'événements pour développer/réduire la description
+  const descriptionElement = card.querySelector('.task-description-content');
+  if (descriptionElement) {
+    descriptionElement.addEventListener('click', function(e) {
+      this.classList.toggle('expanded');
+    });
+  }
+  
   const tagElement = card.querySelector('.tag');
   if (tagElement) {
     tagElement.addEventListener('dblclick', function(e) {
@@ -656,13 +664,21 @@ function openTaskDetailModal(index) {
   document.getElementById('modal-task-index').value = index;
   document.getElementById('modal-task-title').value = task.titre;
   
-  // Réinitialiser TinyMCE avant de définir le contenu
-  if (tinymce.get('modal-task-description')) {
+  // Gérer le champ de description
+  const descriptionField = document.getElementById('modal-task-description');
+  
+  if (tinyMCEInitialized && tinymce.get('modal-task-description')) {
+    // Si TinyMCE est déjà initialisé, mettre à jour son contenu
     tinymce.get('modal-task-description').setContent(task.description || '');
   } else {
-    document.getElementById('modal-task-description').value = task.description || '';
-    // Réinitialiser TinyMCE si l'éditeur n'existe pas encore
-    initTinyMCE();
+    // Sinon, mettre à jour le textarea avec le contenu ou le placeholder
+    if (task.description && task.description.trim() !== '') {
+      descriptionField.value = task.description;
+      descriptionField.classList.remove('description-placeholder');
+    } else {
+      descriptionField.value = tinyMCEPlaceholder;
+      descriptionField.classList.add('description-placeholder');
+    }
   }
   
   document.getElementById('modal-task-tag').value = task.tag || '';
@@ -679,37 +695,9 @@ function openTaskDetailModal(index) {
   document.getElementById('btn-day-after').onclick = () => setQuickDeadline(2);
   document.getElementById('btn-next-week').onclick = () => setQuickDeadlineNextWeek();
   
+  // Afficher le modal
   const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
   modal.show();
-}
-
-// Fonction pour définir rapidement une date limite à X jours dans le futur
-function setQuickDeadline(daysToAdd) {
-  const today = new Date();
-  const targetDate = new Date(today);
-  targetDate.setDate(today.getDate() + daysToAdd);
-  
-  // Formater la date au format YYYY-MM-DD pour l'input date
-  const formattedDate = targetDate.toISOString().split('T')[0];
-  document.getElementById('modal-task-deadline').value = formattedDate;
-}
-
-// Fonction pour définir la date limite au lundi de la semaine prochaine
-function setQuickDeadlineNextWeek() {
-  const today = new Date();
-  const targetDate = new Date(today);
-  
-  // Calculer le nombre de jours jusqu'au prochain lundi
-  // Si on est lundi (1), on ajoute 7 jours
-  // Si on est mardi (2), on ajoute 6 jours, etc.
-  const currentDay = today.getDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
-  const daysUntilNextMonday = currentDay === 0 ? 1 : (8 - currentDay);
-  
-  targetDate.setDate(today.getDate() + daysUntilNextMonday);
-  
-  // Formater la date au format YYYY-MM-DD pour l'input date
-  const formattedDate = targetDate.toISOString().split('T')[0];
-  document.getElementById('modal-task-deadline').value = formattedDate;
 }
 
 function saveTaskDetails() {
@@ -718,11 +706,18 @@ function saveTaskDetails() {
   
   task.titre = document.getElementById('modal-task-title').value.trim();
   
-  // Récupérer le contenu de TinyMCE
-  if (tinymce.get('modal-task-description')) {
+  // Récupérer le contenu de la description
+  const descriptionField = document.getElementById('modal-task-description');
+  
+  if (tinyMCEInitialized && tinymce.get('modal-task-description')) {
+    // Si TinyMCE est initialisé, récupérer son contenu
     task.description = tinymce.get('modal-task-description').getContent();
+  } else if (descriptionField.value !== tinyMCEPlaceholder) {
+    // Sinon, récupérer la valeur du textarea si ce n'est pas le placeholder
+    task.description = descriptionField.value.trim();
   } else {
-    task.description = document.getElementById('modal-task-description').value.trim();
+    // Si c'est le placeholder, mettre une chaîne vide
+    task.description = '';
   }
   
   task.tag = document.getElementById('modal-task-tag').value.trim();
@@ -737,6 +732,46 @@ function saveTaskDetails() {
   
   const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
   modal.hide();
+}
+
+// Initialiser l'application
+function init() {
+  // Charger les tâches depuis le stockage local
+  loadTasks();
+  
+  // Préparer le champ de description pour TinyMCE
+  setupDescriptionField();
+  
+  // Initialiser les événements
+  initEvents();
+  
+  // Mettre à jour l'affichage
+  renderTasks();
+  updateTagFilter();
+}
+
+// Configurer le champ de description pour le chargement différé de TinyMCE
+function setupDescriptionField() {
+  const descriptionField = document.getElementById('modal-task-description');
+  if (!descriptionField) return;
+  
+  // Ajouter le placeholder par défaut
+  descriptionField.value = tinyMCEPlaceholder;
+  descriptionField.classList.add('description-placeholder');
+  
+  // Ajouter un écouteur d'événements pour initialiser TinyMCE au clic
+  descriptionField.addEventListener('click', function() {
+    if (!tinyMCEInitialized) {
+      // Supprimer le placeholder et la classe associée
+      if (descriptionField.value === tinyMCEPlaceholder) {
+        descriptionField.value = '';
+      }
+      descriptionField.classList.remove('description-placeholder');
+      
+      // Initialiser TinyMCE
+      initTinyMCE();
+    }
+  });
 }
 
 // Fonction pour exporter les tâches au format JSON
@@ -811,26 +846,41 @@ function importTasksFromJson(event) {
   event.target.value = '';
 }
 
-// Initialisation de TinyMCE
+// Variables pour TinyMCE
+let tinyMCEInitialized = false;
+let tinyMCEPlaceholder = 'Cliquez ici pour ajouter une description détaillée...';
+
+// Initialisation de TinyMCE uniquement au clic
 function initTinyMCE() {
+  // Si TinyMCE est déjà initialisé, ne rien faire
+  if (tinyMCEInitialized) return;
+  
+  // Initialiser TinyMCE
   tinymce.init({
     selector: '#modal-task-description',
-    plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount checklist mediaembed casechange export formatpainter pageembed linkchecker permanentpen powerpaste advtable advcode editimage advtemplate mentions tableofcontents footnotes mergetags autocorrect typography inlinecss',
-    toolbar: 'undo redo | blocks | bold italic underline strikethrough | link image checklist numlist bullist | addcomment showcomments | align | indent outdent | emoticons charmap | removeformat',
-    tinycomments_mode: 'embedded',
-    tinycomments_author: 'Utilisateur',
-    mergetags_list: [
-      { value: 'Aujourd\'hui', title: 'Date' },
-      { value: 'Demain', title: 'Demain' },
-    ],
-    language: 'fr_FR',
     height: 300,
     menubar: false,
-    promotion: false,
-    branding: false,
+    plugins: [
+      'advlist autolink lists link image charmap print preview anchor',
+      'searchreplace visualblocks code fullscreen',
+      'insertdatetime media table paste code help wordcount'
+    ],
+    toolbar: 'undo redo | formatselect | ' +
+    'bold italic backcolor | alignleft aligncenter ' +
+    'alignright alignjustify | bullist numlist outdent indent | ' +
+    'removeformat | help',
+    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
     setup: function(editor) {
-      editor.on('change', function() {
-        editor.save(); // Sauvegarde le contenu dans le textarea
+      editor.on('init', function() {
+        tinyMCEInitialized = true;
+        
+        // Si nous éditons une tâche existante, récupérer son contenu
+        if (currentEditingTaskIndex !== null) {
+          const task = tasks[currentEditingTaskIndex];
+          if (task && task.description) {
+            editor.setContent(task.description);
+          }
+        }
       });
     }
   });
