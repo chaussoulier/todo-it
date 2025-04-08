@@ -13,7 +13,7 @@ Thumbs.db
 .env.development.local
 .env.test.local
 .env.production.local
-config.js
+# config.js
 config.json
 secrets.json
 
@@ -43,7 +43,7 @@ build/
 # Fichiers personnels et temporaires
 notes.txt
 todo.txt
-DEVELOPMENT.md
+# DEVELOPMENT.md
 *.bak
 *.tmp
 *~
@@ -51,7 +51,6 @@ DEVELOPMENT.md
 # Fichiers de clés API et d'authentification
 api_keys.js
 api_keys.json
-config.js
 config.json
 *_key.js
 *_key.json

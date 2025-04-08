@@ -15,12 +15,11 @@
 </head>
 <body>
 
+  <div id="sidebar-placeholder"></div>
+  
   <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1>📝 Todo It</h1>
-      <div class="user-auth-container" id="user-info">
-        <button id="login-button" class="btn btn-primary">Se connecter avec Google</button>
-      </div>
+      <h1>Dashboard</h1>
       <div class="d-flex gap-2 import-export-container">
         <button id="export-json-btn" class="btn btn-outline-secondary">📤 Exporter JSON</button>
         <button id="import-json-btn" class="btn btn-outline-secondary">📥 Importer JSON</button>
@@ -212,8 +211,9 @@
     </div>
     <div id="completed-tasks" class="row">
       <!-- Les tâches terminées s'affichent ici -->
-    </div>
+    </div>  
   </div>
+</div>
 
   <!-- Modale pour la description longue -->
   <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
@@ -382,21 +382,10 @@
     </div>
   </div>
 
-  <!-- Footer avec version -->
-  <footer class="container-fluid mt-5 py-3 bg-light">
-    <div class="container">
-      <div class="row">
-        <div class="col-12">
-          <p class="text-muted small mb-0"> 2025 Todo It - v.<span id="app-version"></span></p>
-        </div>
-      </div>
-    </div>
-  </footer>
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="config.js"></script>
-  <script>
-    document.getElementById('app-version').textContent = version;
+  <script type="module">
+    import config from './config.js';
+    document.getElementById('app-version').textContent = config.version;
     // Utiliser la clé API depuis le fichier de configuration
     (function() {
       var script = document.createElement('script');
@@ -420,69 +409,20 @@
     import firebaseConfig from './firebase-config.js';
     import { initFirebase } from './firebase-service.js';
     
-    // Initialiser Firebase au chargement de la page
-    document.addEventListener('DOMContentLoaded', initFirebase);
-  </script>
-  <script>
-    // Gérer l'authentification Firebase
-    onAuthStateChanged(auth, async (user) => {
-      const userInfo = document.getElementById('user-info');
-      if (user) {
-        // L'utilisateur est connecté
-        userInfo.innerHTML = `
-          <div class="user-info">
-            <img src="${user.photoURL}" alt="${user.displayName}" class="user-avatar">
-            <span class="user-name">${user.displayName}</span>
-            <button id="logout-button" class="btn btn-outline-secondary btn-sm">Déconnexion</button>
-          </div>
-        `;
-        document.getElementById('logout-button').addEventListener('click', signOutUser);
-        
-        // Initialiser les notifications push si l'utilisateur est connecté
-        try {
-          await initPushNotifications();
-        } catch (error) {
-          console.error('Erreur lors de l\'initialisation des notifications push:', error);
-        }
-        
-        // Charger les tâches de l'utilisateur depuis Firestore
-        try {
-          const userTasks = await loadTasks(user.uid);
-          if (userTasks && userTasks.length > 0) {
-            tasks = userTasks;
-            renderTasksFiltered();
-          }
-        } catch (error) {
-          console.error('Erreur lors du chargement des tâches:', error);
-        }
-      } else {
-        // L'utilisateur n'est pas connecté
-        userInfo.innerHTML = `<button id="login-button" class="btn btn-primary">Se connecter avec Google</button>`;
-        document.getElementById('login-button').addEventListener('click', signInWithGoogle);
-      }
+    // Initialiser Firebase immédiatement
+    initFirebase().catch(error => {
+      console.error('Erreur lors de l\'initialisation de Firebase:', error);
+      // Continuer l'application même en cas d'erreur
     });
+  </script>
 
-    // Ajouter des écouteurs d'événements pour les boutons d'exportation, d'importation et de notifications
-    document.getElementById('export-json-btn').addEventListener('click', exportTasksToJson);
-    document.getElementById('import-json-btn').addEventListener('click', () => {
-      document.getElementById('import-json-input').click();
-    });
-    document.getElementById('import-json-input').addEventListener('change', importTasksFromJson);
-    document.getElementById('notifications-btn').addEventListener('click', async () => {
-      const permission = await requestNotificationPermission();
-      if (permission) {
-        await initPushNotifications();
-        alert('Notifications activées ! Vous recevrez des rappels pour vos tâches importantes.');
-        // Envoyer une notification de test
-        sendNotification('Todo It - Notifications activées', {
-          body: 'Vous recevrez désormais des notifications pour vos tâches importantes !',
-          icon: '/favicon.ico'
-        });
-      } else {
-        alert('Vous devez autoriser les notifications pour recevoir des rappels de tâches.');
-      }
-    });
-  </script>
   <script src="script.js"></script>
+  <script>
+    fetch('sidebar.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('sidebar-placeholder').innerHTML = html;
+      });
+  </script>
 </body>
 </html>

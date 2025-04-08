@@ -139,27 +139,43 @@ async function loadUserTasks() {
     const { collection, getDocs, query, where } = 
       await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
     
-    const q = query(collection(db, 'tasks'), where('userId', '==', currentUser.uid));
-    const querySnapshot = await getDocs(q);
+    // Vérifier que db est initialisé
+    if (!db) {
+      console.log('Firestore n\'est pas initialisé, utilisation des données locales');
+      return;
+    }
     
-    const loadedTasks = [];
-    querySnapshot.forEach((doc) => {
-      const taskData = doc.data();
-      delete taskData.userId; // Supprimer l'ID utilisateur avant d'ajouter à la liste
-      loadedTasks.push(taskData);
-    });
-    
-    if (loadedTasks.length > 0) {
-      console.log(`${loadedTasks.length} tâches chargées depuis Firestore`);
-      tasks = loadedTasks;
-      localStorage.setItem('tasks', JSON.stringify(tasks));
+    try {
+      const q = query(collection(db, 'tasks'), where('userId', '==', currentUser.uid));
+      const querySnapshot = await getDocs(q);
+      
+      const loadedTasks = [];
+      querySnapshot.forEach((doc) => {
+        const taskData = doc.data();
+        delete taskData.userId; // Supprimer l'ID utilisateur avant d'ajouter à la liste
+        loadedTasks.push(taskData);
+      });
+      
+      if (loadedTasks.length > 0) {
+        console.log(`${loadedTasks.length} tâches chargées depuis Firestore`);
+        tasks = loadedTasks;
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        renderTasksFiltered();
+      } else {
+        console.log('Aucune tâche trouvée dans Firestore, utilisation des données locales');
+      }
+    } catch (firestoreError) {
+      console.error('Erreur d\'accès à Firestore, utilisation des données locales:', firestoreError);
+      // Utiliser les tâches locales en cas d'erreur de permissions
+      tasks = JSON.parse(localStorage.getItem('tasks')) || [];
       renderTasksFiltered();
-    } else {
-      console.log('Aucune tâche trouvée dans Firestore');
     }
     
   } catch (error) {
     console.error('Erreur lors du chargement des tâches:', error);
+    // Utiliser les tâches locales en cas d'erreur
+    tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    renderTasksFiltered();
   }
 }
 
@@ -229,7 +245,7 @@ window.saveTasks = function() {
   }
 };
 
-// Exporter les fonctions
+// Exporter les fonctions pour l'utilisation dans d'autres modules
 export { 
   initFirebase,
   signInWithGoogle,

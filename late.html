@@ -11,15 +11,10 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="style.css">
-  <style>
-    .late-cards-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 15px;
-    }
-  </style>
 </head>
 <body>
+
+  <div id="sidebar-placeholder"></div>
 
   <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -191,17 +186,6 @@
     </div>
   </div>
 
-    <!-- Footer avec version -->
-    <footer class="container-fluid mt-5 py-3 bg-light">
-      <div class="container">
-        <div class="row">
-          <div class="col-12">
-            <p class="text-muted small mb-0">© 2025 Todo It - v.<span id="app-version"></span></p>
-          </div>
-        </div>
-      </div>
-    </footer>
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   <script src="config.js"></script>
   <script>
@@ -232,5 +216,12 @@
     });
   </script>
   <script src="late.js"></script>
+  <script>
+    fetch('sidebar.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('sidebar-placeholder').innerHTML = html;
+      });
+  </script>
 </body>
 </html>

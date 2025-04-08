@@ -1,8 +1,10 @@
 body {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  background-color: #e4e9f2;
+  background-color: #F7F7F5;
   min-height: 100vh;
   color: #2d3748;
+  display: flex;
+  flex-direction: row;
 }
 
 .bg-light {
@@ -11,13 +13,73 @@ body {
 }
 
 .container {
-  max-width: 1400px;
+  max-width: 90%;
   background-color: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
   padding: 2rem;
   margin-top: 2rem;
   margin-bottom: 2rem;
+  margin-right: 2rem;
+  margin-left: 1rem;
+}
+
+.sidebar {
+  position: sticky;
+  top: 2rem;
+  height: calc(100vh - 4rem);
+  width: 300px;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 3rem 1.5rem !important;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  z-index: 1030;
+  margin-left: 2rem;
+  margin-right: 0rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-y: auto; /* ✅ permet le scroll si besoin */
+}
+
+@media (max-width: 768px) {
+  body {
+    flex-direction: column;
+  }
+  .sidebar {
+    display: none;
+  }
+  .main-content {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.menu {
+  color: #1A202C;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.menu:hover {
+  color: #5FBD92;
+}
+
+.sidebar .user-auth-container {
+  margin-top: 1rem;
+  justify-content: center;
+}
+
+.sidebar p.text-muted {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.logo {
+  margin-top: 0rem;
+  padding-bottom: 1.3rem;
+  padding-left: 1rem;
 }
 
 h1, h3, h4 {
@@ -150,13 +212,14 @@ h4 {
 }
 
 .btn-primary {
-  background-color: #4361ee;
-  border-color: #4361ee;
+  background-color: #5FBD92;
+  border-color: #5FBD92;
 }
 
 .btn-primary:hover, .btn-primary:focus {
-  background-color: #3a56d4;
-  border-color: #3a56d4;
+  background-color: transparent;
+  border-color: #5FBD92;
+  color: #5FBD92;
 }
 
 .btn-success, .btn-success:focus {
@@ -195,6 +258,18 @@ h4 {
   background-color: #F3F6F9;
 }
 
+.btn-outline-primary {
+  color: #5FBD92;
+  border-color: #5FBD92;
+  background-color: transparent;
+}
+
+.btn-outline-primary:hover {
+  background-color: #5FBD92;
+  border-color: #5FBD92;
+  color: white;
+}
+
 .btn-outline-secondary:hover {
   background-color: #bfd0e1;
   border-color: #bfd0e1;
@@ -220,18 +295,16 @@ h4 {
 /* Colonnes et cartes */
 .column-header {
   background-color: #f8fafc;
-  border-radius: 8px 8px 0 0;
-  padding: 0.75rem 1rem;
-  border: 1px solid #e2e8f0;
+  border-radius: 15px 15px 0 0;
+  padding: 2rem 2rem 0.1rem 2rem;
   border-bottom: none;
 }
 
 .task-column {
   background-color: #f8fafc;
-  border-radius: 0 0 8px 8px;
-  padding: 1rem;
+  border-radius: 0 0 15px 15px;
+  padding: 1rem 2rem;
   min-height: 300px;
-  border: 1px solid #e2e8f0;
   border-top: none;
 }
 
@@ -362,7 +435,7 @@ h4 {
 
 .weekday-checkbox:checked + label {
   font-weight: 600;
-  color: #0d6efd;
+  color: #5FBD92;
 }
 
 /* Journal des actions */
@@ -452,12 +525,12 @@ h4 {
 
 .statut-afaire {
   background-color: #e0f0ff;
-  color: #0d6efd;
+  color: #0a53be;
 }
 
 .statut-alire {
   background-color: #e0f0ff;
-  color: #0d6efd;
+  color: #5FBD92;
 }
 
 .statut-encours {
@@ -606,8 +679,8 @@ h4 {
 
 /* Styles pour le toggle de vue */
 .form-check-input:checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: #5FBD92;
+  border-color: #5FBD92;
 }
 
 .form-check-input {
@@ -634,7 +707,7 @@ h4 {
 }
 
 #date-filters button.active {
-  background-color: #0d6efd;
+  background-color: #5FBD92;
   color: white;
 }
 
@@ -646,7 +719,7 @@ h4 {
 }
 
 .btn-dater:hover {
-  background-color: #0d6efd;
+  background-color: #5FBD92;
   color: white;
 }
 
@@ -704,7 +777,7 @@ h4 {
 }
 
 .subtask-progress .progress-bar {
-  background-color: #0d6efd;
+  background-color: #5FBD92;
   transition: width 0.3s ease;
 }
 
@@ -764,4 +837,9 @@ h4 {
   .import-export-container {
     justify-content: space-between;
   }
+}
+
+.text-muted.small.mb-0 {
+  margin-bottom: 0;
+  text-align: center;
 }
