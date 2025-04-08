@@ -8,7 +8,7 @@
     "build": "echo 'No build step required'"
   },
   "dependencies": {
-    "firebase": "^10.14.1",
+    "firebase": "^11.6.0",
     "serve": "^14.2.1",
     "web-push": "^3.6.7"
   },
