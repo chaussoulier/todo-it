@@ -1454,47 +1454,53 @@ function exportTasksToJson() {
 function importTasksFromJson(event) {
   const file = event.target.files[0];
   if (!file) return;
-  
+
   const reader = new FileReader();
-  
-  reader.onload = function(e) {
+
+  reader.onload = function (e) {
     try {
-      // Analyser le contenu JSON
       const importedTasks = JSON.parse(e.target.result);
-      
-      // Vérifier que le contenu est un tableau
+
       if (!Array.isArray(importedTasks)) {
         alert('Format de fichier invalide. Le fichier doit contenir un tableau de tâches.');
         return;
       }
-      
-      // Demander confirmation avant de remplacer les tâches existantes
+
+      // Récupération du userId si connecté
+      const uid = window.firebaseService?.auth?.currentUser?.uid || currentUser?.uid;
+
+      if (!uid) {
+        alert('Vous devez être connecté pour importer des tâches.');
+        return;
+      }
+
+      // Ajout automatique du userId s'il est absent
+      importedTasks.forEach(task => {
+        if (!task.userId) task.userId = uid;
+      });
+
       if (confirm(`Voulez-vous importer ${importedTasks.length} tâches ? Cela remplacera toutes les tâches existantes.`)) {
-        // Remplacer les tâches existantes par les tâches importées
         tasks = importedTasks;
-        
-        // Sauvegarder les tâches dans le localStorage
-        saveTasks();
-        
-        // Rafraîchir l'affichage
+
+        // Sauvegarde dans Firestore + localStorage
+        saveTasks(tasks);
+
+        // Rafraîchissement visuel
         renderTasksFiltered();
-        
-        alert('Import réussi !');
+
+        alert('✅ Import réussi et synchronisé avec Firebase');
       }
     } catch (error) {
-      alert(`Erreur lors de l'analyse du fichier JSON : ${error.message}`);
+      alert(`❌ Erreur lors de l'analyse du fichier JSON : ${error.message}`);
     }
   };
-  
-  reader.onerror = function() {
-    alert('Erreur lors de la lecture du fichier.');
+
+  reader.onerror = function () {
+    alert('❌ Erreur lors de la lecture du fichier.');
   };
-  
-  // Lire le fichier comme texte
+
   reader.readAsText(file);
-  
-  // Réinitialiser l'input file pour permettre de sélectionner le même fichier à nouveau si nécessaire
-  event.target.value = '';
+  event.target.value = ''; // reset input
 }
 
 // Structure de données pour la récurrence
@@ -1819,6 +1825,49 @@ async function checkTasksForNotifications() {
       data: { type: 'tomorrow', url: '/tomorrow.html' }
     });
   }
+}
+
+function initDragAndDrop() {
+  const columns = ['today-column', 'tomorrow-column', 'future-column'];
+
+  columns.forEach(columnId => {
+    const el = document.getElementById(columnId);
+    if (!el) return;
+
+    Sortable.create(el, {
+      group: 'tasks',
+      animation: 150,
+      onEnd: function (evt) {
+        const item = evt.item;
+        const newParentId = evt.to.id;
+
+        const taskIndex = item.getAttribute('data-index');
+        if (!taskIndex || !tasks[taskIndex]) return;
+
+        // Mise à jour du champ deadline selon la colonne
+        const today = new Date();
+        let newDate = null;
+
+        if (newParentId === 'today-column') {
+          newDate = today.toISOString().split('T')[0];
+        } else if (newParentId === 'tomorrow-column') {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(today.getDate() + 1);
+          newDate = tomorrow.toISOString().split('T')[0];
+        } else if (newParentId === 'future-column') {
+          const future = new Date(today);
+          future.setDate(today.getDate() + 3);
+          newDate = future.toISOString().split('T')[0];
+        }
+
+        tasks[taskIndex].deadline = newDate;
+
+        saveTasks(tasks);
+        renderTasksFiltered(); // remet à jour les colonnes
+        initDragAndDrop();     // rebind les events
+      }
+    });
+  });
 }
 
 // Fonction pour gérer la création automatique des tâches récurrentes

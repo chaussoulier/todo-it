@@ -1,7 +1,6 @@
 // Service Firebase pour Todo It
 import firebaseConfig from './firebase-config.js';
 
-// Initialisation de Firebase
 let app, auth, db, analytics;
 let currentUser = null;
 let isInitialized = false;
@@ -9,51 +8,44 @@ let isInitialized = false;
 // Fonction d'initialisation de Firebase
 async function initFirebase() {
   if (isInitialized) return;
-  
+
   try {
-    // Import dynamique des modules Firebase
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js');
-    const { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } = 
-      await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js');
-    const { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc } = 
-      await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
+    const { getAuth, onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js');
+    const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
     const { getAnalytics } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics.js');
-    
-    // Initialisation des services Firebase
+
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
     analytics = getAnalytics(app);
-    
-    // Observer les changements d'état d'authentification
+
     onAuthStateChanged(auth, (user) => {
       currentUser = user;
       if (user) {
-        console.log('Utilisateur connecté:', user.displayName);
-        // Mettre à jour l'interface utilisateur
+        console.log('✅ Utilisateur connecté:', user.displayName);
         updateUIForLoggedInUser(user);
-        // Charger les tâches de l'utilisateur
         loadUserTasks();
+        startAutoSave(); // ✅ démarrer la sauvegarde auto
       } else {
-        console.log('Utilisateur déconnecté');
-        // Mettre à jour l'interface utilisateur
+        console.log('👋 Utilisateur déconnecté');
+        clearSessionTasks();
         updateUIForLoggedOutUser();
       }
     });
-    
+
     isInitialized = true;
-    console.log('Firebase initialisé avec succès');
-    
-    // Exposer les fonctions Firebase
+    console.log('✅ Firebase initialisé avec succès');
+
     window.firebaseService = {
       signInWithGoogle,
       signOutUser,
       saveTasks,
       loadUserTasks
     };
-    
+
   } catch (error) {
-    console.error('Erreur lors de l\'initialisation de Firebase:', error);
+    console.error('❌ Erreur Firebase init :', error);
   }
 }
 
@@ -65,7 +57,7 @@ async function signInWithGoogle() {
     const result = await signInWithPopup(auth, provider);
     return result.user;
   } catch (error) {
-    console.error('Erreur de connexion avec Google:', error);
+    console.error('❌ Erreur connexion Google :', error);
     throw error;
   }
 }
@@ -75,116 +67,135 @@ async function signOutUser() {
   try {
     const { signOut } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js');
     await signOut(auth);
-    // Revenir aux tâches locales
-    tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    clearSessionTasks();
     renderTasksFiltered();
   } catch (error) {
-    console.error('Erreur de déconnexion:', error);
+    console.error('❌ Erreur déconnexion :', error);
     throw error;
   }
 }
 
-// Sauvegarder les tâches dans Firestore
+// Nettoyage complet de la session (UI + localStorage)
+function clearSessionTasks() {
+  tasks = [];
+  localStorage.removeItem('tasks');
+}
+
+// Sauvegarde des tâches dans Firestore
 async function saveTasks(tasks) {
   if (!currentUser) {
-    console.log('Aucun utilisateur connecté, sauvegarde locale uniquement');
+    console.log('💾 Sauvegarde locale uniquement');
     localStorage.setItem('tasks', JSON.stringify(tasks));
     return;
   }
-  
+
+  if (!tasks || tasks.length === 0) {
+    console.log('⚠️ Tâches vides – aucune sauvegarde Firebase pour éviter suppression accidentelle');
+    return;
+  }
+
   try {
-    const { collection, addDoc, getDocs, query, where, deleteDoc } = 
+    const { collection, addDoc, getDocs, query, where, deleteDoc } =
       await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
-    
-    // Supprimer les anciennes tâches
+
     const q = query(collection(db, 'tasks'), where('userId', '==', currentUser.uid));
     const querySnapshot = await getDocs(q);
+
     const deletePromises = [];
-    
     querySnapshot.forEach((doc) => {
       deletePromises.push(deleteDoc(doc.ref));
     });
-    
+
     await Promise.all(deletePromises);
-    
-    // Ajouter les nouvelles tâches
+
     const addPromises = tasks.map(task => {
       return addDoc(collection(db, 'tasks'), {
         ...task,
         userId: currentUser.uid
       });
     });
-    
+
     await Promise.all(addPromises);
-    console.log(`${tasks.length} tâches sauvegardées dans Firestore`);
+    console.log(`✅ ${tasks.length} tâches sauvegardées dans Firestore`);
     
-    // Sauvegarder aussi localement
     localStorage.setItem('tasks', JSON.stringify(tasks));
-    
+    updateAutosaveStatus(); // ✅ affiche le message de confirmation
+
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde des tâches:', error);
-    // Fallback à la sauvegarde locale
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+    console.error('❌ Erreur sauvegarde Firestore :', error);
+    localStorage.setItem('tasks', JSON.stringify(tasks)); // fallback local
   }
 }
 
-// Charger les tâches depuis Firestore
+// Notification de sauvegarde automatique 
+function updateAutosaveStatus() {
+  const statusEl = document.getElementById('autosave-status');
+  if (!statusEl) return;
+
+  const now = new Date();
+  const options = {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false
+  };
+  const formatted = now.toLocaleDateString('fr-FR', options).replace(',', ' à').replace(':', 'h');
+  statusEl.textContent = `Sauvegardé le ${formatted}`;
+  statusEl.style.display = 'block';
+
+  // Disparaît après 5 secondes
+  setTimeout(() => {
+    statusEl.style.display = 'none';
+  }, 5000);
+}
+
+// Chargement des tâches depuis Firestore
 async function loadUserTasks() {
   if (!currentUser) {
-    console.log('Aucun utilisateur connecté, chargement local uniquement');
+    console.log('⚠️ Pas connecté – chargement local uniquement');
     return;
   }
-  
+
   try {
-    const { collection, getDocs, query, where } = 
+    const { collection, getDocs, query, where } =
       await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
-    
-    // Vérifier que db est initialisé
+
     if (!db) {
-      console.log('Firestore n\'est pas initialisé, utilisation des données locales');
+      console.log('⚠️ Firestore non initialisé');
       return;
     }
-    
-    try {
-      const q = query(collection(db, 'tasks'), where('userId', '==', currentUser.uid));
-      const querySnapshot = await getDocs(q);
-      
-      const loadedTasks = [];
-      querySnapshot.forEach((doc) => {
-        const taskData = doc.data();
-        delete taskData.userId; // Supprimer l'ID utilisateur avant d'ajouter à la liste
-        loadedTasks.push(taskData);
-      });
-      
-      if (loadedTasks.length > 0) {
-        console.log(`${loadedTasks.length} tâches chargées depuis Firestore`);
-        tasks = loadedTasks;
-        localStorage.setItem('tasks', JSON.stringify(tasks));
-        renderTasksFiltered();
-      } else {
-        console.log('Aucune tâche trouvée dans Firestore, utilisation des données locales');
-      }
-    } catch (firestoreError) {
-      console.error('Erreur d\'accès à Firestore, utilisation des données locales:', firestoreError);
-      // Utiliser les tâches locales en cas d'erreur de permissions
-      tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+    const q = query(collection(db, 'tasks'), where('userId', '==', currentUser.uid));
+    const querySnapshot = await getDocs(q);
+
+    const loadedTasks = [];
+    querySnapshot.forEach((doc) => {
+      const taskData = doc.data();
+      delete taskData.userId;
+      loadedTasks.push(taskData);
+    });
+
+    if (loadedTasks.length > 0) {
+      console.log(`✅ ${loadedTasks.length} tâches chargées depuis Firestore`);
+      tasks = loadedTasks;
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      renderTasksFiltered();
+    } else {
+      console.log('ℹ️ Aucune tâche trouvée pour cet utilisateur');
+      tasks = [];
+      localStorage.removeItem('tasks');
       renderTasksFiltered();
     }
-    
+
   } catch (error) {
-    console.error('Erreur lors du chargement des tâches:', error);
-    // Utiliser les tâches locales en cas d'erreur
+    console.error('❌ Erreur chargement tâches Firestore :', error);
     tasks = JSON.parse(localStorage.getItem('tasks')) || [];
     renderTasksFiltered();
   }
 }
 
-// Mettre à jour l'interface pour un utilisateur connecté
+// UI utilisateur connecté
 function updateUIForLoggedInUser(user) {
-  // Créer ou mettre à jour les éléments d'interface utilisateur
   const userInfoContainer = document.getElementById('user-info') || createUserInfoContainer();
-  
-  // Afficher les informations de l'utilisateur
   userInfoContainer.innerHTML = `
     <div class="user-profile">
       <img src="${user.photoURL || 'https://via.placeholder.com/30'}" alt="${user.displayName}" class="user-avatar">
@@ -192,61 +203,65 @@ function updateUIForLoggedInUser(user) {
       <button id="logout-button" class="btn btn-sm btn-outline-secondary">Déconnexion</button>
     </div>
   `;
-  
-  // Ajouter l'écouteur d'événement pour la déconnexion
   document.getElementById('logout-button').addEventListener('click', signOutUser);
 }
 
-// Mettre à jour l'interface pour un utilisateur déconnecté
+// UI utilisateur déconnecté
 function updateUIForLoggedOutUser() {
   const userInfoContainer = document.getElementById('user-info') || createUserInfoContainer();
-  
   userInfoContainer.innerHTML = `
     <button id="login-button" class="btn btn-primary">Se connecter avec Google</button>
   `;
-  
-  // Ajouter l'écouteur d'événement pour la connexion
   document.getElementById('login-button').addEventListener('click', signInWithGoogle);
 }
 
-// Créer le conteneur d'informations utilisateur s'il n'existe pas
+// Création du bloc UI utilisateur s'il manque
 function createUserInfoContainer() {
   const container = document.createElement('div');
   container.id = 'user-info';
   container.className = 'user-info-container';
-  
-  // Insérer avant les boutons d'import/export
+
   const importExportContainer = document.querySelector('.import-export-container');
   if (importExportContainer) {
     importExportContainer.parentNode.insertBefore(container, importExportContainer);
   } else {
-    // Fallback: ajouter au début de la page
     const mainContainer = document.querySelector('.container');
     if (mainContainer) {
       mainContainer.insertBefore(container, mainContainer.firstChild);
     }
   }
-  
+
   return container;
 }
 
-// Initialiser Firebase au chargement de la page
+// Initialiser Firebase dès le DOM prêt
 document.addEventListener('DOMContentLoaded', initFirebase);
 
-// Remplacer la fonction saveTasks existante
+// Surcharge de la fonction globale saveTasks
 const originalSaveTasks = window.saveTasks;
-window.saveTasks = function() {
-  // Appeler la fonction originale pour maintenir la compatibilité
+window.saveTasks = function () {
   if (originalSaveTasks) originalSaveTasks();
-  
-  // Sauvegarder dans Firebase si initialisé
+
   if (isInitialized && window.firebaseService) {
-    window.firebaseService.saveTasks(tasks);
+    if (tasks && tasks.length > 0) {
+      window.firebaseService.saveTasks(tasks);
+    } else {
+      console.log('⚠️ Aucune tâche – Firestore non mis à jour');
+    }
   }
 };
 
-// Exporter les fonctions pour l'utilisation dans d'autres modules
-export { 
+// Sauvegarde auto toutes les 60 secondes
+function startAutoSave() {
+  setInterval(() => {
+    if (!currentUser || !tasks || tasks.length === 0) return;
+
+    console.log('⏳ Sauvegarde automatique déclenchée...');
+    saveTasks(tasks);
+  }, 60000); // toutes les 60 secondes
+}
+
+export {
   initFirebase,
   signInWithGoogle,
   signOutUser,

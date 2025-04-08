@@ -294,14 +294,14 @@ h4 {
 
 /* Colonnes et cartes */
 .column-header {
-  background-color: #f8fafc;
+  background-color: #fafaf6;
   border-radius: 15px 15px 0 0;
   padding: 2rem 2rem 0.1rem 2rem;
   border-bottom: none;
 }
 
 .task-column {
-  background-color: #f8fafc;
+  background-color: #fafaf6;
   border-radius: 0 0 15px 15px;
   padding: 1rem 2rem;
   min-height: 300px;

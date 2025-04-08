@@ -3,7 +3,7 @@
 // Nom du cache pour les ressources statiques
 const CACHE_NAME = 'todo-it-cache-v1';
 
-// Liste des ressources u00e0 mettre en cache
+// Liste des ressources à mettre en cache
 const urlsToCache = [
   '/',
   '/index.html',
@@ -54,24 +54,24 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Interception des requu00eates fetch
+// Interception des requêtes fetch
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Cache hit - retourner la ru00e9ponse du cache
+        // Cache hit - retourner la réponse du cache
         if (response) {
           return response;
         }
-        // Pas de correspondance dans le cache, ru00e9cupu00e9rer depuis le ru00e9seau
+        // Pas de correspondance dans le cache, récupérer depuis le réseau
         return fetch(event.request).then(
           (response) => {
-            // Vu00e9rifier si nous avons reu00e7u une ru00e9ponse valide
+            // Vérifier si nous avons reçu une réponse valide
             if (!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
 
-            // Cloner la ru00e9ponse car elle ne peut u00eatre utilisu00e9e qu'une fois
+            // Cloner la réponse car elle ne peut être utilisée qu'une fois
             const responseToCache = response.clone();
 
             caches.open(CACHE_NAME)
