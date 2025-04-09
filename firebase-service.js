@@ -22,11 +22,15 @@ async function initFirebase() {
 
     onAuthStateChanged(auth, (user) => {
       currentUser = user;
+    
+      // 🧩 expose l'utilisateur globalement
+      window.firebaseService.currentUser = user;
+    
       if (user) {
         console.log('✅ Utilisateur connecté:', user.displayName);
         updateUIForLoggedInUser(user);
         loadUserTasks();
-        startAutoSave(); // ✅ démarrer la sauvegarde auto
+        startAutoSave();
       } else {
         console.log('👋 Utilisateur déconnecté');
         clearSessionTasks();
@@ -41,7 +45,8 @@ async function initFirebase() {
       signInWithGoogle,
       signOutUser,
       saveTasks,
-      loadUserTasks
+      loadUserTasks,
+      currentUser
     };
 
   } catch (error) {
@@ -82,50 +87,86 @@ function clearSessionTasks() {
 }
 
 // Sauvegarde des tâches dans Firestore
-async function saveTasks(tasks) {
-  if (!currentUser) {
-    console.log('💾 Sauvegarde locale uniquement');
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-    return;
-  }
+async function saveTasks(taskList = tasks) {
+  const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
 
-  if (!tasks || tasks.length === 0) {
-    console.log('⚠️ Tâches vides – aucune sauvegarde Firebase pour éviter suppression accidentelle');
-    return;
-  }
+  localStorage.setItem('tasks', JSON.stringify(taskList));
+
+  if (!window.firebaseService?.currentUser) return;
+
+  const uid = window.firebaseService.currentUser.uid;
+
+  const writePromises = taskList.map(async (task) => {
+    if (!task.id) {
+      task.id = Date.now().toString() + Math.random().toString(36).substring(2);
+    }
+
+    const taskRef = doc(db, 'tasks', task.id);
+
+    await setDoc(taskRef, {
+      ...task,
+      userId: uid
+    });
+  });
 
   try {
-    const { collection, addDoc, getDocs, query, where, deleteDoc } =
-      await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
-
-    const q = query(collection(db, 'tasks'), where('userId', '==', currentUser.uid));
-    const querySnapshot = await getDocs(q);
-
-    const deletePromises = [];
-    querySnapshot.forEach((doc) => {
-      deletePromises.push(deleteDoc(doc.ref));
-    });
-
-    await Promise.all(deletePromises);
-
-    const addPromises = tasks.map(task => {
-      return addDoc(collection(db, 'tasks'), {
-        ...task,
-        userId: currentUser.uid
-      });
-    });
-
-    await Promise.all(addPromises);
-    console.log(`✅ ${tasks.length} tâches sauvegardées dans Firestore`);
-    
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-    updateAutosaveStatus(); // ✅ affiche le message de confirmation
-
+    await Promise.all(writePromises);
+    console.log(`✅ ${tasks.length} tâche(s) sauvegardée(s) dans Firestore`);
   } catch (error) {
     console.error('❌ Erreur sauvegarde Firestore :', error);
-    localStorage.setItem('tasks', JSON.stringify(tasks)); // fallback local
   }
 }
+
+// ✅ Mise à jour de importTasksFromJson pour éviter les doublons
+function importTasksFromJson(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    try {
+      let importedTasks = JSON.parse(e.target.result);
+
+      if (!Array.isArray(importedTasks)) {
+        alert('Format de fichier invalide. Le fichier doit contenir un tableau de tâches.');
+        return;
+      }
+
+      const uid = window.firebaseService?.currentUser?.uid;
+
+      if (!uid) {
+        alert('Vous devez être connecté pour importer des tâches.');
+        return;
+      }
+
+      importedTasks = importedTasks.map(task => {
+        return {
+          ...task,
+          userId: task.userId || uid,
+          id: task.id || Date.now().toString() + Math.random().toString(36).substring(2)
+        };
+      });
+
+      if (confirm(`Voulez-vous importer ${importedTasks.length} tâches ? Cela remplacera toutes les tâches existantes.`)) {
+        tasks = importedTasks;
+        saveTasks(importedTasks);
+        renderTasksFiltered();
+        alert('✅ Import réussi et synchronisé avec Firebase');
+      }
+    } catch (error) {
+      alert(`❌ Erreur lors de l'analyse du fichier JSON : ${error.message}`);
+    }
+  };
+
+  reader.onerror = function () {
+    alert('❌ Erreur lors de la lecture du fichier.');
+  };
+
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
 
 // Notification de sauvegarde automatique 
 function updateAutosaveStatus() {

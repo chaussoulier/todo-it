@@ -1432,6 +1432,8 @@ function exportTasksToJson() {
   const tasksJson = JSON.stringify(tasks, null, 2);
   const blob = new Blob([tasksJson], { type: 'application/json' });
   
+  console.log(tasks[0]);
+
   // Créer une URL pour le Blob
   const url = URL.createObjectURL(blob);
   
@@ -1467,7 +1469,7 @@ function importTasksFromJson(event) {
       }
 
       // Récupération du userId si connecté
-      const uid = window.firebaseService?.auth?.currentUser?.uid || currentUser?.uid;
+      const uid = window.firebaseService?.currentUser?.uid;
 
       if (!uid) {
         alert('Vous devez être connecté pour importer des tâches.');
