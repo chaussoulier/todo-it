@@ -1,4 +1,7 @@
+import { debouncedSaveTask } from './firebase-service.js';
+
 const form = document.getElementById('task-form');
+
 const todayColumn = document.getElementById('today-column');
 const tomorrowColumn = document.getElementById('tomorrow-column');
 const futureColumn = document.getElementById('future-column');
@@ -14,6 +17,11 @@ let currentEditingTaskIndex = null; // Index de la tâche en cours d'édition
 
 function saveTasks() {
   localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+function saveAndSync(task) {
+  if (!task || !task.id) return;
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+  debouncedSaveTask(task);
 }
 
 // Fonction pour u00e9chapper les caractères HTML et empêcher l'interprétation des balises
@@ -460,8 +468,7 @@ function markAsDone(index) {
   tasks[index].completedAt = new Date().toISOString();
   tasks[index].log.push(`Marquée comme terminée le ${new Date().toLocaleString('fr-FR')}`);
   
-  saveTasks();
-  renderTasksFiltered();
+  saveAndSync(tasks[index]); renderTasksFiltered();
 }
 
 function editTitle(element, index) {
@@ -487,7 +494,7 @@ function editTitle(element, index) {
     if (newValue) {
       tasks[index].titre = newValue;
       tasks[index].log.push(`Titre modifié en "${newValue}" le ${new Date().toLocaleString('fr-FR')}`);
-      saveTasks();
+      saveAndSync(tasks[index]);
       renderTasksFiltered();
     } else {
       element.textContent = tasks[index].titre;
@@ -523,8 +530,7 @@ function editTag(element, index) {
   input.addEventListener("blur", () => {
     tasks[index].tag = input.value.trim();
     tasks[index].log.push(`Tag modifié en "${input.value.trim()}" le ${new Date().toLocaleString('fr-FR')}`);
-    saveTasks();
-    renderTasksFiltered();
+    saveAndSync(tasks[index]); renderTasksFiltered();
     updateTagSuggestions();
   });
 
@@ -557,7 +563,7 @@ function editDeadline(element, index) {
   input.addEventListener("blur", () => {
     tasks[index].deadline = input.value;
     tasks[index].log.push(`Date limite modifiée en "${input.value}" le ${new Date().toLocaleString('fr-FR')}`);
-    saveTasks();
+    saveAndSync(tasks[index]);
     renderTasksFiltered();
   });
 
@@ -574,7 +580,7 @@ function viderTerminees() {
 
   tasks = tasks.filter(task => task.statut !== "Terminée");
   checkTasksForNotifications();
-  saveTasks();
+  saveAndSync(tasks[index]); // <=== ajout ici
   renderTasksFiltered();
 }
 
@@ -589,7 +595,7 @@ function gererTachesEnRetard() {
     }
   });
 
-  saveTasks();
+  saveAndSync(tasks[index]); // <=== ajout ici
   renderTasksFiltered();
   updateRetardButtonState();
 }
@@ -709,6 +715,7 @@ function addTask(event) {
   }
   
   const nouvelleTache = {
+    id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Ajout d'un ID unique
     titre,
     tag,
     deadline,
@@ -721,7 +728,9 @@ function addTask(event) {
   };
   
   tasks.push(nouvelleTache);
-  saveTasks();
+  saveAndSync(tasks[index]);
+  const index = tasks.length - 1;
+  debouncedSaveTask(tasks[index]); // <=== ajout ici
   document.getElementById("task-form").reset();
   // Réinitialiser le statut à "À faire"
   document.getElementById("task-statut").value = "À faire";
@@ -742,7 +751,7 @@ function updateTaskStatut(index, newStatut) {
   
   tasks[index].statut = newStatut;
   tasks[index].log.push(`Statut changé en ${newStatut} le ${new Date().toLocaleString('fr-FR')}`);
-  saveTasks();
+  saveAndSync(tasks[index]); // <=== ajout ici
   renderTasksFiltered();
 }
 
@@ -950,7 +959,7 @@ function saveTaskDetails() {
     task.etapes = newEtapes;
   }
   
-  saveTasks();
+  saveAndSync(tasks[index]); // <=== ajout ici
   renderTasksFiltered();
   
   // Fermer la modale
@@ -1081,7 +1090,7 @@ function initMissingLogs() {
   
   if (compteur > 0) {
     console.log(`${compteur} tâches ont été mises à jour avec un journal`);
-    saveTasks();
+    saveAndSync(tasks[index]); // <=== ajout ici
   } else {
     console.log('Toutes les tâches ont déjà un journal');
   }
@@ -2023,7 +2032,7 @@ function processRecurringTasks() {
   
   if (newTasksCreated > 0) {
     console.log(`${newTasksCreated} nouvelles tâches récurrentes créées`);
-    saveTasks();
+    saveAndSync(tasks[index]); // <=== ajout ici
   } else {
     console.log('Aucune nouvelle tâche récurrente à créer aujourd\'hui');
   }

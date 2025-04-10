@@ -5,6 +5,9 @@ let app, auth, db, analytics;
 let currentUser = null;
 let isInitialized = false;
 
+// Référence aux tâches globales
+let localTasks = [];
+
 // Fonction d'initialisation de Firebase
 async function initFirebase() {
   if (isInitialized) return;
@@ -30,7 +33,6 @@ async function initFirebase() {
         console.log('✅ Utilisateur connecté:', user.displayName);
         updateUIForLoggedInUser(user);
         loadUserTasks();
-        startAutoSave();
       } else {
         console.log('👋 Utilisateur déconnecté');
         clearSessionTasks();
@@ -73,7 +75,9 @@ async function signOutUser() {
     const { signOut } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js');
     await signOut(auth);
     clearSessionTasks();
-    renderTasksFiltered();
+    if (typeof renderTasksFiltered === 'function') {
+      renderTasksFiltered();
+    }
   } catch (error) {
     console.error('❌ Erreur déconnexion :', error);
     throw error;
@@ -82,7 +86,7 @@ async function signOutUser() {
 
 // Nettoyage complet de la session (UI + localStorage)
 function clearSessionTasks() {
-  tasks = [];
+  window.tasks = [];
   localStorage.removeItem('tasks');
 }
 
@@ -167,28 +171,6 @@ function importTasksFromJson(event) {
   event.target.value = '';
 }
 
-
-// Notification de sauvegarde automatique 
-function updateAutosaveStatus() {
-  const statusEl = document.getElementById('autosave-status');
-  if (!statusEl) return;
-
-  const now = new Date();
-  const options = {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-    hour12: false
-  };
-  const formatted = now.toLocaleDateString('fr-FR', options).replace(',', ' à').replace(':', 'h');
-  statusEl.textContent = `Sauvegardé le ${formatted}`;
-  statusEl.style.display = 'block';
-
-  // Disparaît après 5 secondes
-  setTimeout(() => {
-    statusEl.style.display = 'none';
-  }, 5000);
-}
-
 // Chargement des tâches depuis Firestore
 async function loadUserTasks() {
   if (!currentUser) {
@@ -217,20 +199,20 @@ async function loadUserTasks() {
 
     if (loadedTasks.length > 0) {
       console.log(`✅ ${loadedTasks.length} tâches chargées depuis Firestore`);
-      tasks = loadedTasks;
-      localStorage.setItem('tasks', JSON.stringify(tasks));
-      renderTasksFiltered();
+      window.tasks = loadedTasks;
+      localStorage.setItem('tasks', JSON.stringify(window.tasks));
+      if (typeof renderTasksFiltered === 'function') renderTasksFiltered();
     } else {
       console.log('ℹ️ Aucune tâche trouvée pour cet utilisateur');
-      tasks = [];
+      window.tasks = [];
       localStorage.removeItem('tasks');
-      renderTasksFiltered();
+      if (typeof renderTasksFiltered === 'function') renderTasksFiltered();
     }
 
   } catch (error) {
     console.error('❌ Erreur chargement tâches Firestore :', error);
-    tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-    renderTasksFiltered();
+    window.tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    if (typeof renderTasksFiltered === 'function') renderTasksFiltered();
   }
 }
 
@@ -292,14 +274,81 @@ window.saveTasks = function () {
   }
 };
 
-// Sauvegarde auto toutes les 60 secondes
-function startAutoSave() {
-  setInterval(() => {
-    if (!currentUser || !tasks || tasks.length === 0) return;
+document.addEventListener('DOMContentLoaded', () => {
+  const manualSaveBtn = document.getElementById('manual-save-btn');
+  const saveStatus = document.getElementById('manual-save-status');
 
-    console.log('⏳ Sauvegarde automatique déclenchée...');
-    saveTasks(tasks);
-  }, 60000); // toutes les 60 secondes
+  if (manualSaveBtn) {
+    manualSaveBtn.addEventListener('click', () => {
+      if (!currentUser || !tasks || tasks.length === 0) {
+        alert("Aucune tâche à sauvegarder ou utilisateur non connecté.");
+        return;
+      }
+
+      manualSaveBtn.disabled = true;
+      manualSaveBtn.innerText = "💾 Sauvegarde en cours...";
+      console.log('💾 Sauvegarde manuelle vers Firestore...');
+
+      saveTasks(tasks).then(() => {
+        const now = new Date();
+        localStorage.setItem('lastFirebaseSave', now.getTime().toString());
+        saveStatus.textContent = `✅ Sauvegardé à ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+        saveStatus.style.display = 'inline';
+        manualSaveBtn.innerText = "💾 Sauvegarder manuellement";
+        manualSaveBtn.disabled = false;
+
+        // Masquer après 5 secondes
+        setTimeout(() => saveStatus.style.display = 'none', 5000);
+      }).catch((error) => {
+        console.error('❌ Erreur lors de la sauvegarde manuelle :', error);
+        alert('Erreur lors de la sauvegarde.');
+        manualSaveBtn.innerText = "💾 Sauvegarder manuellement";
+        manualSaveBtn.disabled = false;
+      });
+    });
+  }
+});
+
+const taskSaveQueue = {};
+const debounceTimers = {};
+
+async function saveTask(task) {
+  const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
+
+  if (!task || !task.id || !window.firebaseService?.currentUser) return;
+
+  const uid = window.firebaseService.currentUser.uid;
+  const taskRef = doc(db, 'tasks', task.id);
+
+  try {
+    await setDoc(taskRef, {
+      ...task,
+      userId: uid
+    });
+    console.log(`✅ Tâche "${task.titre}" sauvegardée dans Firestore`);
+  } catch (error) {
+    console.error(`❌ Erreur en sauvegardant la tâche "${task.titre}" :`, error);
+  }
+}
+
+// Debounce simple pour éviter les appels multiples rapprochés
+export function debouncedSaveTask(task, delay = 1000) {
+  if (!task || !task.id) return;
+
+  // Stocker la dernière version dans la file
+  taskSaveQueue[task.id] = task;
+
+  // S’il y a déjà un timer, on le réinitialise
+  clearTimeout(debounceTimers[task.id]);
+
+  debounceTimers[task.id] = setTimeout(() => {
+    const latestTask = taskSaveQueue[task.id];
+    if (latestTask) {
+      saveTask(latestTask);
+      delete taskSaveQueue[task.id];
+      delete debounceTimers[task.id];
+    }
+  }, delay);
 }
 
 export {
@@ -307,5 +356,5 @@ export {
   signInWithGoogle,
   signOutUser,
   saveTasks,
-  loadUserTasks
+  loadUserTasks,
 };
