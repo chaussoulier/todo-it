@@ -92,20 +92,41 @@ function clearSessionTasks() {
 
 // Sauvegarde des tâches dans Firestore
 async function saveTasks(taskList = tasks) {
+  console.log('🔥 [firebase-service.js] Début saveTasks avec', taskList.length, 'tâches');
+  
+  // Vérifier les tâches terminées
+  const completedTasks = taskList.filter(t => t.statut === 'Terminée');
+  console.log(`🔥 [firebase-service.js] Dont ${completedTasks.length} tâches terminées`);
+  if (completedTasks.length > 0) {
+    console.log('🔥 [firebase-service.js] Exemple de tâche terminée:', completedTasks[0]);
+  }
+  
   const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
 
+  console.log('🔥 [firebase-service.js] Sauvegarde dans localStorage');
   localStorage.setItem('tasks', JSON.stringify(taskList));
+  
+  // Vérifier que la sauvegarde a bien fonctionné
+  const savedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+  const savedCompletedTasks = savedTasks.filter(t => t.statut === 'Terminée');
+  console.log(`🔥 [firebase-service.js] Après sauvegarde localStorage: ${savedCompletedTasks.length} tâches terminées sur ${savedTasks.length} tâches au total`);
 
-  if (!window.firebaseService?.currentUser) return;
+  if (!window.firebaseService?.currentUser) {
+    console.log('🔥 [firebase-service.js] Pas d\'utilisateur connecté, sauvegarde Firebase ignorée');
+    return;
+  }
 
   const uid = window.firebaseService.currentUser.uid;
+  console.log('🔥 [firebase-service.js] Utilisateur connecté:', uid);
 
   const writePromises = taskList.map(async (task) => {
     if (!task.id) {
       task.id = Date.now().toString() + Math.random().toString(36).substring(2);
+      console.log('🔥 [firebase-service.js] Nouvelle tâche sans ID, ID généré:', task.id);
     }
 
     const taskRef = doc(db, 'tasks', task.id);
+    console.log(`🔥 [firebase-service.js] Sauvegarde de la tâche ${task.titre} (${task.id}) avec statut ${task.statut}`);
 
     await setDoc(taskRef, {
       ...task,
@@ -115,7 +136,7 @@ async function saveTasks(taskList = tasks) {
 
   try {
     await Promise.all(writePromises);
-    console.log(`✅ ${tasks.length} tâche(s) sauvegardée(s) dans Firestore`);
+    console.log(`✅ ${taskList.length} tâche(s) sauvegardée(s) dans Firestore`);
   } catch (error) {
     console.error('❌ Erreur sauvegarde Firestore :', error);
   }
@@ -351,10 +372,43 @@ export function debouncedSaveTask(task, delay = 1000) {
   }, delay);
 }
 
+async function getUserTasks() {
+  if (!auth || !db || !currentUser) {
+    throw new Error("Firebase non initialisé ou utilisateur non connecté");
+  }
+
+  const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js');
+
+  const q = query(collection(db, 'tasks'), where('userId', '==', currentUser.uid));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+}
+
+function waitForUser() {
+  return new Promise((resolve, reject) => {
+    const unsubscribe = firebase.auth().onAuthStateChanged(user => {
+      unsubscribe(); // arrêter l'écoute
+      if (user) resolve(user);
+      else reject(new Error("Utilisateur non connecté"));
+    });
+  });
+}
+
+function onUserAuthStateChanged(callback) {
+  firebase.auth().onAuthStateChanged(callback);
+}
+
 export {
   initFirebase,
   signInWithGoogle,
   signOutUser,
   saveTasks,
   loadUserTasks,
+  getUserTasks,
+  waitForUser,
+  onUserAuthStateChanged
 };

@@ -1,44 +1,45 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex, nofollow">
-  <title>Tâches d'Aujourd'hui</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="favicon.ico" sizes="any">
-  <style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>🔥 Aujourd'hui - Todo It</title>
 
-    .today-cards-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 15px;
-    }
-  </style>
+  <!-- Styles & Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <div id="sidebar-placeholder"></div>
 
-  <div class="container py-5 today-only">
+  <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1> 🔥 Tâches d'Aujourd'hui</h1>
-      <a href="index.html" class="btn btn-outline-secondary">Retour à la liste complète</a>
+      <h1>Dashboard</h1>
+      <div class="d-flex gap-2 import-export-container">
+        <button id="export-json-btn" class="btn btn-outline-secondary">📤 Exporter JSON</button>
+        <button id="import-json-btn" class="btn btn-outline-secondary">📥 Importer JSON</button>
+        <button id="notifications-btn" class="btn btn-outline-secondary">🔔 Notifications</button>
+        <button id="manual-save-btn" class="btn btn-outline-secondary">
+          💾 Sauvegarder
+        </button>
+        <span id="manual-save-status" class="ms-3 text-muted small" style="display:none;"></span>
+        <input type="file" id="import-json-input" accept=".json" style="display: none;">
+      </div>
     </div>
 
     <div class="row mb-4">
       <div class="col-md-12">
         <form id="task-form" class="row g-3">
-          <div class="col-md-4">
-            <input type="text" class="form-control" id="task-title" placeholder="Titre" required>
+          <div class="col-md-5">
+            <input type="text" class="form-control" id="task-title" placeholder="Titre de la tâche pour aujourd'hui" required>
           </div>
-          <div class="col-md-2">
+          <div class="col-md-3">
             <input type="text" class="form-control" id="task-tag" placeholder="Tag (ex : perso)" list="tag-suggestions">
             <datalist id="tag-suggestions"></datalist>
           </div>
@@ -57,22 +58,19 @@
               <option value="!!!">!!!</option>
             </select>
           </div>
-          <div class="col-md-2">
-            <input type="date" class="form-control" id="task-deadline" value="{{ today }}">
-          </div>
+          <!-- Champ de date retiré car on ajoute automatiquement pour aujourd'hui -->
           <div class="col-md-1">
-            <button type="submit" class="btn btn-primary w-100">Ajouter</button>
+            <button type="submit" class="btn btn-primary">Ajouter</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Navigation -->
     <div class="navigation-container mb-4">
       <div class="nav-tabs-wrapper">
         <ul class="nav nav-tabs nav-fill" id="date-filters">
           <li class="nav-item">
-            <a class="nav-link" href="./index.html">
+            <a class="nav-link" href="index.html">
               <span class="nav-icon">📃</span>
               <span class="nav-text">Toutes les dates</span>
             </a>
@@ -105,26 +103,28 @@
       </div>
     </div>
 
-    <!-- Système de cartes - Seulement aujourd'hui -->
-    <div class="row mb-4">
-      <div class="col-12 d-flex justify-content-between align-items-center">
-        <h3 class="mb-0">Tâches pour aujourd'hui</h3>
-        <div class="form-check form-switch">
-          <input class="form-check-input" type="checkbox" id="view-mode-toggle" checked>
-          <label class="form-check-label" for="view-mode-toggle">Vue détaillée</label>
+        <!-- Système de cartes -->
+        <div class="row mb-4">
+          <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Tâches par date</h3>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="view-mode-toggle" checked>
+              <label class="form-check-label" for="view-mode-toggle">Vue détaillée</label>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
+    <!-- Contenu spécifique au jour -->
     <div class="row">
-      <!-- Colonne Aujourd'hui (pleine largeur) -->
-      <div class="col-12 mb-4">
+      <div class="col-md-12">
         <div class="column-header">
-          <h4> 🔥 Aujourd'hui</h4>
+          <h4>🔥 Aujourd'hui</h4>
         </div>
         <div class="task-column">
-          <div id="today-column" class="today-cards-container">
-            <!-- Les cartes seront ajoutées ici dynamiquement -->
+          <div id="today-columns-container" class="row">
+            <div class="col-md-4"><div id="today-col-1"></div></div>
+            <div class="col-md-4"><div id="today-col-2"></div></div>
+            <div class="col-md-4"><div id="today-col-3"></div></div>
           </div>
         </div>
       </div>
@@ -170,6 +170,20 @@
             <label for="modal-task-description" class="form-label">Description / Mémo</label>
             <textarea class="form-control" id="modal-task-description" rows="6"></textarea>
           </div>
+          
+          <!-- Section des sous-tâches -->
+          <div class="mb-3">
+            <label class="form-label d-flex justify-content-between align-items-center">
+              <span>Sous-tâches / Étapes</span>
+              <button type="button" class="btn btn-sm btn-outline-primary" id="add-subtask-btn">
+                <i class="bi bi-plus-circle"></i> Ajouter une étape
+              </button>
+            </label>
+            <div id="subtasks-container" class="mb-2">
+              <!-- Les sous-tâches seront ajoutées ici dynamiquement -->
+            </div>
+          </div>
+          
           <div class="row">
             <div class="col-md-6 mb-3">
               <label for="modal-task-tag" class="form-label">Tag</label>
@@ -180,12 +194,100 @@
           <div class="mb-3">
             <label for="modal-task-statut" class="form-label">Statut</label>
             <select class="form-select" id="modal-task-statut">
-              <option value="à faire">à faire</option>
-              <option value="à lire">à lire</option>
-              <option value="à challenger">à challenger</option>
+              <option value="À faire">À faire</option>
+              <option value="À lire">À lire</option>
+              <option value="À challenger">À challenger</option>
               <option value="En cours">En cours</option>
               <option value="Terminée">Terminée</option>
             </select>
+          </div>
+          
+          <!-- Section de récurrence -->
+          <div class="mb-3" id="recurrence-section">
+            <div class="d-flex justify-content-between align-items-center">
+              <label class="form-label mb-0">Récurrence</label>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="enable-recurrence">
+                <label class="form-check-label" for="enable-recurrence">Activer</label>
+              </div>
+            </div>
+            <div id="recurrence-options" class="mt-2" style="display: none;">
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <label for="recurrence-type" class="form-label small">Type de récurrence</label>
+                  <select class="form-select form-select-sm" id="recurrence-type">
+                    <option value="daily">Quotidienne</option>
+                    <option value="weekly">Hebdomadaire</option>
+                    <option value="monthly">Mensuelle</option>
+                    <option value="yearly">Annuelle</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label for="recurrence-interval" class="form-label small">Intervalle</label>
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" id="recurrence-interval" min="1" value="1">
+                    <span class="input-group-text" id="interval-unit">jour(s)</span>
+                  </div>
+                </div>
+              </div>
+              <div class="row" id="weekly-options" style="display: none;">
+                <div class="col-12 mb-2">
+                  <label class="form-label small">Jours de la semaine</label>
+                  <div class="d-flex flex-wrap">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-1" value="1">
+                      <label class="form-check-label" for="weekday-1">Lun</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-2" value="2">
+                      <label class="form-check-label" for="weekday-2">Mar</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-3" value="3">
+                      <label class="form-check-label" for="weekday-3">Mer</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-4" value="4">
+                      <label class="form-check-label" for="weekday-4">Jeu</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-5" value="5">
+                      <label class="form-check-label" for="weekday-5">Ven</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-6" value="6">
+                      <label class="form-check-label" for="weekday-6">Sam</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input weekday-checkbox" type="checkbox" id="weekday-0" value="0">
+                      <label class="form-check-label" for="weekday-0">Dim</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <label for="recurrence-end-type" class="form-label small">Fin de récurrence</label>
+                  <select class="form-select form-select-sm" id="recurrence-end-type">
+                    <option value="never">Jamais</option>
+                    <option value="after">Après un nombre d'occurrences</option>
+                    <option value="on-date">À une date précise</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-2" id="recurrence-end-value-container">
+                  <!-- Le contenu sera ajouté dynamiquement en fonction du type de fin -->
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Section du journal des actions -->
+          <div class="mb-3">
+            <label class="form-label">Historique des actions</label>
+            <div id="task-log-container" class="task-log-container">
+              <!-- Les entrées du journal seront ajoutées ici dynamiquement -->
+              <div class="text-muted small">Aucune action enregistrée</div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -196,10 +298,11 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="config.js"></script>
-  <script>
-    document.getElementById('app-version').textContent = version;
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script type="module">
+    import config from './config.js';
     // Utiliser la clé API depuis le fichier de configuration
     (function() {
       var script = document.createElement('script');
@@ -210,27 +313,22 @@
         // S'assurer que TinyMCE est disponible
         if (typeof tinymce !== 'undefined') {
           console.log('TinyMCE loaded successfully');
-          // Préparer le champ de description pour TinyMCE
-          setupDescriptionField();
+          // TinyMCE est chargé, pas besoin d'initialiser ici
+          // L'initialisation se fait dans le script.js quand nécessaire
         }
       };
       document.head.appendChild(script);
     })();
   </script>
-  <script>
-    // Définir la date d'aujourd'hui par défaut pour le champ deadline
-    document.addEventListener('DOMContentLoaded', function() {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('task-deadline').value = today;
-    });
+  <script type="module">
+    import './today.js';
+    console.log('✅ today.js bien importé dans today.html');
   </script>
-  <script src="today.js"></script>
   <script>
+    // Sidebar injection
     fetch('sidebar.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('sidebar-placeholder').innerHTML = html;
-      });
+      .then(res => res.text())
+      .then(html => document.getElementById('sidebar-placeholder').innerHTML = html);
   </script>
 </body>
 </html>

@@ -26,6 +26,10 @@
         <button id="export-json-btn" class="btn btn-outline-secondary">📤 Exporter JSON</button>
         <button id="import-json-btn" class="btn btn-outline-secondary">📥 Importer JSON</button>
         <button id="notifications-btn" class="btn btn-outline-secondary">🔔 Notifications</button>
+        <button id="manual-save-btn" class="btn btn-outline-secondary">
+          💾 Sauvegarder
+        </button>
+        <span id="manual-save-status" class="ms-3 text-muted small" style="display:none;"></span>
         <input type="file" id="import-json-input" accept=".json" style="display: none;">
       </div>
     </div>
@@ -137,7 +141,7 @@
 
     <div class="row">
       <!-- Colonne 1 - Aujourd'hui -->
-      <div class="col-md-6 mb-4">
+      <div class="col-md-8 mb-4">
         <div class="column-header">
           <h4>🔥 Aujourd'hui</h4>
         </div>
@@ -149,7 +153,7 @@
       </div>
 
       <!-- Colonne 3 - Demain -->
-      <div class="col-md-3 mb-4">
+      <div class="col-md-4 mb-4">
         <div class="column-header">
           <h4>⏰ Demain</h4>
         </div>
@@ -158,16 +162,38 @@
         </div>
       </div>
 
-      <!-- Colonne 4 - Autres dates -->
-      <div class="col-md-3 mb-4">
-        <div class="column-header">
-          <h4>📅 Prochainement</h4>
+    <!-- Autres dates "Soon" -->
+
+<!-- Tâches à venir -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">📅 Prochainement</h3>
+</div>
+<div class="row mb-4 mt-4">
+  <div class="col-12">
+    <div class="column-header">
+      <h4>À venir</h4>
+    </div>
+    <div class="task-column">
+      <div class="row" id="future-tasks-container">
+        <div class="col-md-4 mb-4">
+          <div id="future-column-1" class="task-column-inner">
+            <!-- Les cartes à venir (colonne 1) seront ajoutées ici dynamiquement -->
+          </div>
         </div>
-        <div id="future-column" class="task-column">
-          <!-- Les cartes seront ajoutées ici dynamiquement -->
+        <div class="col-md-4 mb-4">
+          <div id="future-column-2" class="task-column-inner">
+            <!-- Les cartes à venir (colonne 2) seront ajoutées ici dynamiquement -->
+          </div>
+        </div>
+        <div class="col-md-4 mb-4">
+          <div id="future-column-3" class="task-column-inner">
+            <!-- Les cartes à venir (colonne 3) seront ajoutées ici dynamiquement -->
+          </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
 
     <!-- Tâches en retard -->
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -181,24 +207,19 @@
         </div>
         <div class="task-column">
           <div class="row" id="late-tasks-container">
-            <div class="col-md-3 mb-4">
+            <div class="col-md-4 mb-4">
               <div id="late-column-1" class="task-column-inner">
                 <!-- Les cartes en retard (colonne 1) seront ajoutées ici dynamiquement -->
               </div>
             </div>
-            <div class="col-md-3 mb-4">
+            <div class="col-md-4 mb-4">
               <div id="late-column-2" class="task-column-inner">
                 <!-- Les cartes en retard (colonne 2) seront ajoutées ici dynamiquement -->
               </div>
             </div>
-            <div class="col-md-3 mb-4">
+            <div class="col-md-4 mb-4">
               <div id="late-column-3" class="task-column-inner">
                 <!-- Les cartes en retard (colonne 3) seront ajoutées ici dynamiquement -->
-              </div>
-            </div>
-            <div class="col-md-3 mb-4">
-              <div id="late-column-4" class="task-column-inner">
-                <!-- Les cartes en retard (colonne 4) seront ajoutées ici dynamiquement -->
               </div>
             </div>
           </div>

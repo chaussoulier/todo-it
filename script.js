@@ -1,18 +1,25 @@
 import { debouncedSaveTask } from './firebase-service.js';
+import { renderTaskCard, renderCompletedTaskCard, renderSubtasks, getTagClass, calculateImportanceScore, formatDeadline, stripHtmlKeepLineBreaks } from './render-utils.js';
+import { renderAllTasks } from './task-renderer.js';
+import { openTaskDetailModal } from './task-modal.js';
+import { tasks, setTasks, tasksLoaded } from './task-data.js';
+import { updateModalTagSuggestions } from './form-utils.js';
 
 const form = document.getElementById('task-form');
 
 const todayColumn = document.getElementById('today-column');
 const tomorrowColumn = document.getElementById('tomorrow-column');
-const futureColumn = document.getElementById('future-column');
+const futureColumn1 = document.getElementById('future-column-1');
+const futureColumn2 = document.getElementById('future-column-2');
+const futureColumn3 = document.getElementById('future-column-3');
 const lateColumn1 = document.getElementById('late-column-1');
 const lateColumn2 = document.getElementById('late-column-2');
 const lateColumn3 = document.getElementById('late-column-3');
-const lateColumn4 = document.getElementById('late-column-4');
 const completedTasks = document.getElementById('completed-tasks');
 
-let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-let isDetailedView = false; // Par défaut, on est en vue détaillée
+const localTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+setTasks(localTasks);
+let isDetailedView = false; // Toogle par défaut de vue détaillée
 let currentEditingTaskIndex = null; // Index de la tâche en cours d'édition
 
 function saveTasks() {
@@ -24,7 +31,7 @@ function saveAndSync(task) {
   debouncedSaveTask(task);
 }
 
-// Fonction pour u00e9chapper les caractères HTML et empêcher l'interprétation des balises
+// Fonction pour échapper les caractères HTML et empêcher l'interprétation des balises
 function escapeHtml(text) {
   if (!text) return '';
   return text
@@ -35,99 +42,6 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
-// Fonction pour nettoyer le HTML en ne conservant que les sauts de ligne
-function stripHtmlKeepLineBreaks(html) {
-  if (!html) return '';
-  // Remplacer les balises de saut de ligne par des sauts de ligne réels
-  let text = html.replace(/<br\s*\/?>/gi, '\n');
-  // Remplacer les balises de paragraphe par des sauts de ligne doubles
-  text = text.replace(/<\/p><p>/gi, '\n\n');
-  text = text.replace(/<p>/gi, '');
-  text = text.replace(/<\/p>/gi, '\n\n');
-  // Supprimer toutes les autres balises HTML
-  text = text.replace(/<[^>]*>/g, '');
-  // Décoder les entités HTML
-  text = text.replace(/&lt;/g, '<')
-             .replace(/&gt;/g, '>')
-             .replace(/&amp;/g, '&')
-             .replace(/&quot;/g, '"')
-             .replace(/&#039;/g, '\'');
-  // Éviter les sauts de ligne multiples consécutifs
-  text = text.replace(/\n{3,}/g, '\n\n');
-  return text.trim();
-}
-
-function formatDeadline(dateStr) {
-  if (!dateStr) return "";
-
-  const deadline = new Date(dateStr);
-  deadline.setHours(0, 0, 0, 0);
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const diffTime = deadline - today;
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) return "🕰️ En retard";
-  if (diffDays === 0) return "📅 Aujourd'hui";
-  if (diffDays === 1) return "⏰ Demain";
-  if (diffDays >= 2 && diffDays <= 5) {
-    return `📅 ${deadline.toLocaleDateString('fr-FR', { weekday: 'long' })}`;
-  }
-
-  return `✅ ${deadline.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
-}
-
-function getTagClass(tag) {
-  // Normaliser le tag pour le comparer
-  const normalizedTag = tag.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ /g, "-");
-  
-  // Définir des classes spécifiques pour certains tags
-  const tagClasses = {
-    'test': 'illustration',
-    'ems': 'design',
-    'testa': 'ui-design',
-    'all': 'ui-design',
-    'ui': 'ui-design',
-    'copywriting': 'copywriting',
-    'lcf': 'copywriting',
-    'perso': 'perso',
-    'personnel': 'perso',
-    'cocolor': 'travail',
-    'pro': 'travail',
-    'professionnel': 'travail'
-  };
-  
-  return tagClasses[normalizedTag] || '';
-}
-
-// Fonction pour calculer le score d'importance total d'une tâche
-function calculateImportanceScore(task) {
-  // Score basé sur le statut (1 à 3)
-  let statutScore = 1;
-  if (task.statut === "À faire") {
-    statutScore = 3;
-  } else if (task.statut === "À challenger") {
-    statutScore = 2;
-  } else if (task.statut === "À lire") {
-    statutScore = 1;
-  }
-  
-  // Score basé sur l'importance personnalisée (1 à 3)
-  let importanceScore = 1;
-  if (task.importance === "!!!") {
-    importanceScore = 3;
-  } else if (task.importance === "!!") {
-    importanceScore = 2;
-  } else if (task.importance === "!") {
-    importanceScore = 1;
-  }
-  
-  // Score total (2 à 6)
-  return statutScore + importanceScore;
-}
-
 function renderTasksFiltered() {
   const filterTag = document.getElementById('filter-tag').value;
   const sortBy = document.getElementById('sort-by').value;
@@ -135,11 +49,12 @@ function renderTasksFiltered() {
   // Vider toutes les colonnes
   todayColumn.innerHTML = "";
   tomorrowColumn.innerHTML = "";
-  futureColumn.innerHTML = "";
+  futureColumn1.innerHTML = "";
+  futureColumn2.innerHTML = "";
+  futureColumn3.innerHTML = "";
   lateColumn1.innerHTML = "";
   lateColumn2.innerHTML = "";
   lateColumn3.innerHTML = "";
-  lateColumn4.innerHTML = "";
   completedTasks.innerHTML = "";
 
   let filtered = tasks.filter(task => {
@@ -183,23 +98,21 @@ function renderTasksFiltered() {
   const completedTasksList = [];
 
   filtered.forEach((task, filteredIndex) => {
-    // Trouver l'index réel dans le tableau original des tâches
     const originalIndex = tasks.findIndex(t => 
       t.id === task.id && 
       t.titre === task.titre && 
       t.tag === task.tag
     );
-    
+  
     if (task.statut === "Terminée") {
       completedTasksList.push({task, index: originalIndex});
       return;
     }
-
+  
     const taskDate = task.deadline ? new Date(task.deadline) : null;
     if (taskDate) {
       taskDate.setHours(0, 0, 0, 0);
-      
-      // Vérifier si la tâche est en retard
+  
       if (taskDate < today) {
         lateTasks.push({task, index: originalIndex});
       } else if (taskDate.getTime() === today.getTime()) {
@@ -210,57 +123,12 @@ function renderTasksFiltered() {
         futureTasks.push({task, index: originalIndex});
       }
     } else {
-      // Si pas de date, on met dans les tâches futures
       futureTasks.push({task, index: originalIndex});
     }
   });
-
-  // Rendre les tâches dans chaque colonne
-  todayTasks.forEach(({task, index}) => {
-    renderTaskCard(task, index, todayColumn);
-  });
-
-  tomorrowTasks.forEach(({task, index}) => {
-    renderTaskCard(task, index, tomorrowColumn);
-  });
-
-  futureTasks.forEach(({task, index}) => {
-    renderTaskCard(task, index, futureColumn);
-  });
-
-  // Afficher les tâches en retard
-if (lateTasks.length > 0) {
-  // Répartir les tâches en retard sur les 4 colonnes
-  lateTasks.forEach(({task, index}, i) => {
-    // Déterminer dans quelle colonne placer la tâche (0, 1, 2 ou 3)
-    const columnIndex = i % 4;
-    
-    // Sélectionner la colonne appropriée
-    let targetColumn;
-    switch (columnIndex) {
-      case 0:
-        targetColumn = lateColumn1;
-        break;
-      case 1:
-        targetColumn = lateColumn2;
-        break;
-      case 2:
-        targetColumn = lateColumn3;
-        break;
-      case 3:
-        targetColumn = lateColumn4;
-        break;
-    }
-    
-    // Rendre la carte dans la colonne sélectionnée
-    renderTaskCard(task, index, targetColumn);
-  });
-}
-
-  // Afficher les tâches terminées
-  completedTasksList.forEach(({task, index}) => {
-    renderCompletedTaskCard(task, index);
-  });
+  
+  // ✅ Rendu global (et unique) des tâches
+  renderAllTasks(filtered); // 👈 à faire !
 
   updateRetardButtonState();
   
@@ -268,207 +136,59 @@ if (lateTasks.length > 0) {
   updateTaskDescriptionVisibility();
 }
 
-function renderTaskCard(task, index, container) {
-  const card = document.createElement('div');
-  const classStatut = task.statut.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ /g, "");
-  card.className = `task-card ${classStatut}`;
-  card.dataset.taskIndex = index; // Ajouter l'index comme attribut de données
-  
-  // Calculer le score d'importance total
-  const importanceScore = calculateImportanceScore(task);
-  // Ajouter l'attribut data-importance pour le style CSS
-  card.dataset.importance = importanceScore;
-  
-  // Déterminer le degré d'importance
-  // Utiliser l'importance personnalisée si disponible, sinon utiliser celle basée sur le statut
-  let importanceStatut = "";
-  if (task.statut === "À faire") {
-    importanceStatut = "!!!";
-  } else if (task.statut === "À lire") {
-    importanceStatut = "!";
-  } else if (task.statut === "À challenger") {
-    importanceStatut = "!!";
-  }
-  
-  // Utiliser l'importance personnalisée si disponible
-  const importance = task.importance || importanceStatut;
-  
-  const tagClass = task.tag ? getTagClass(task.tag) : '';
-  
-  // Calculer la progression des sous-tâches
-  let subtasksHtml = '';
-  let progressPercent = 0;
-  let subtaskSummary = '';
-  
-  if (task.etapes && task.etapes.length > 0) {
-    const totalSubtasks = task.etapes.length;
-    const completedSubtasks = task.etapes.filter(etape => etape.faite).length;
-    progressPercent = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
-    
-    subtaskSummary = `<div class="subtask-summary">${completedSubtasks}/${totalSubtasks} étapes terminées</div>`;
-    
-    subtasksHtml = `
-      <div class="subtask-progress">
-        <div class="progress-bar" role="progressbar" style="width: ${progressPercent}%" 
-             aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
-      </div>
-    `;
-  }
-  
-  card.innerHTML = `
-    <h5 class="task-title" data-index="${index}">${task.titre}</h5>
-    <div class="d-flex justify-content-between align-items-start">
-      <div>
-        ${task.tag ? `<span class="tag ${tagClass}" data-index="${index}">${task.tag}</span>` : ''}
-        <span class="statut statut-${classStatut}">${task.statut}</span>
-        <span class="importance" title="Score d'importance: ${importanceScore}/6">${importanceScore}</span>
-      </div>
-      <div class="deadline-date" data-index="${index}">
-        ${formatDeadline(task.deadline)}
-      </div>
-    </div>
-    ${task.description ? `<div class="task-description-content"><pre class="task-description-pre">${stripHtmlKeepLineBreaks(task.description)}</pre></div>` : ''}
-    
-    <!-- Affichage des sous-tâches -->
-    ${subtaskSummary}
-    ${subtasksHtml}
-    
-    <div class="task-card-footer d-flex justify-content-between align-items-center">
-      <div class="card-actions">
-        <select class="form-select form-select-sm statut-select" data-index="${index}">
-          <option value="À faire" ${task.statut === "À faire" ? "selected" : ""}>À faire</option>
-          <option value="À lire" ${task.statut === "À lire" ? "selected" : ""}>À lire</option>
-          <option value="À challenger" ${task.statut === "À challenger" ? "selected" : ""}>À challenger</option>
-          <option value="En cours" ${task.statut === "En cours" ? "selected" : ""}>En cours</option>
-          <option value="Terminée" ${task.statut === "Terminée" ? "selected" : ""}>Terminée</option>
-        </select>
-      </div>
-      <div>
-        <button class="btn btn-success btn-sm done-btn" data-index="${index}">Terminer</button>
-      </div>
-    </div>
-  `;
-
-  container.appendChild(card);
-  
-  // Ajouter les écouteurs d'événements pour l'édition
-  const titleElement = card.querySelector('.task-title');
-  titleElement.addEventListener('dblclick', function(e) {
-    e.stopPropagation();
-    const taskIndex = parseInt(this.dataset.index);
-    editTitle(this, taskIndex);
-  });
-  
-  // Ajouter l'écouteur d'événements pour développer/réduire la description
-  const descriptionElement = card.querySelector('.task-description-content');
-  if (descriptionElement) {
-    descriptionElement.addEventListener('click', function(e) {
-      this.classList.toggle('expanded');
-    });
-  }
-  
-  const tagElement = card.querySelector('.tag');
-  if (tagElement) {
-    tagElement.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      const taskIndex = parseInt(this.dataset.index);
-      editTag(this, taskIndex);
-    });
-  }
-  
-  const deadlineElement = card.querySelector('.deadline-date');
-  deadlineElement.addEventListener('dblclick', function(e) {
-    e.stopPropagation();
-    const taskIndex = parseInt(this.dataset.index);
-    editDeadline(this, taskIndex);
-  });
-  
-  // Ajouter les écouteurs pour les boutons et sélecteurs
-  const statutSelect = card.querySelector('.statut-select');
-  statutSelect.addEventListener('change', function() {
-    const taskIndex = parseInt(this.dataset.index);
-    updateTaskStatut(taskIndex, this.value);
-  });
-  
-  const doneButton = card.querySelector('.done-btn');
-  doneButton.addEventListener('click', function(e) {
-    e.stopPropagation();
-    const taskIndex = parseInt(this.dataset.index);
-    markAsDone(taskIndex);
-  });
-  
-  // Ajouter un écouteur d'événement pour ouvrir la modale au clic sur la carte
-  card.addEventListener('click', function(event) {
-    // Ne pas ouvrir la modale si on clique sur un élément interactif
-    if (event.target.tagName === 'SELECT' || 
-        event.target.tagName === 'BUTTON' || 
-        event.target.tagName === 'INPUT') {
-      return;
-    }
-    const taskIndex = parseInt(this.dataset.taskIndex);
-    openTaskDetailModal(taskIndex);
-  });
-}
-
-function renderCompletedTaskCard(task, index) {
-  const col = document.createElement('div');
-  col.className = 'col-md-3 mb-3';
-  
-  const card = document.createElement('div');
-  card.className = 'task-card terminée';
-  card.dataset.taskIndex = index; // Ajouter l'index comme attribut de données
-  
-  const tagClass = task.tag ? getTagClass(task.tag) : '';
-  
-  // Formater la date de traitement si elle existe
-  let completedDateStr = '';
-  if (task.completedAt) {
-    const completedDate = new Date(task.completedAt);
-    completedDateStr = `<div class="completed-date">✅ Terminée le ${completedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} à ${completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`;
-  }
-
-  card.innerHTML = `
-    <h5 class="task-title" data-index="${index}">${task.titre}</h5>
-    <div class="d-flex justify-content-between align-items-start">
-      <div>
-        ${task.tag ? `<span class="tag ${tagClass}" data-index="${index}">${task.tag}</span>` : ''}
-        <span class="statut statut-terminée">Terminée</span>
-      </div>
-      <div class="deadline-date" data-index="${index}">
-        ${formatDeadline(task.deadline)}
-      </div>
-    </div>
-    ${completedDateStr}
-    ${task.description ? `<div class="task-description-content"><pre class="task-description-pre">${stripHtmlKeepLineBreaks(task.description)}</pre></div>` : ''}
-  `;
-  
-  col.appendChild(card);
-  completedTasks.appendChild(col);
-  
-  // Ajouter un écouteur d'événement pour ouvrir la modale au clic sur la carte
-  card.addEventListener('click', function(event) {
-    const taskIndex = parseInt(this.dataset.taskIndex);
-    openTaskDetailModal(taskIndex);
-  });
-}
-
 function markAsDone(index) {
-  // S'assurer que l'index est un nombre
-  index = parseInt(index, 10);
-  
-  // Vérifier que l'index est valide
-  if (isNaN(index) || index < 0 || index >= tasks.length) {
-    console.error("Index de tâche invalide:", index);
+  // Récupérer la tâche correspondant à l'index dans le DOM
+  const taskCard = document.querySelector(`.task-card[data-task-index="${index}"]`);
+  if (!taskCard) {
+    console.error("Carte de tâche introuvable pour l'index:", index);
     return;
   }
   
-  tasks[index].statut = "Terminée";
+  // Trouver l'index réel dans le tableau global tasks
+  const taskId = taskCard.dataset.taskId;
+  const taskIndex = tasks.findIndex(t => t.id === taskId);
   
-  // Ajouter la date de traitement (date à laquelle la tâche a été marquée comme terminée)
-  tasks[index].completedAt = new Date().toISOString();
-  tasks[index].log.push(`Marquée comme terminée le ${new Date().toLocaleString('fr-FR')}`);
+  let taskToUpdate;
+  let taskIndexToUpdate;
   
-  saveAndSync(tasks[index]); renderTasksFiltered();
+  if (taskIndex === -1) {
+    // Si on ne trouve pas par ID, essayer de trouver par index direct
+    // (pour la compatibilité avec les anciennes versions)
+    index = parseInt(index, 10);
+    if (isNaN(index) || index < 0 || index >= tasks.length) {
+      console.error("Tâche introuvable:", index);
+      return;
+    }
+    
+    taskToUpdate = tasks[index];
+    taskIndexToUpdate = index;
+  } else {
+    // Utiliser l'index réel
+    taskToUpdate = tasks[taskIndex];
+    taskIndexToUpdate = taskIndex;
+  }
+  
+  // Mettre à jour la tâche
+  taskToUpdate.statut = "Terminée";
+  taskToUpdate.completedAt = new Date().toISOString();
+  taskToUpdate.log = taskToUpdate.log || [];
+  taskToUpdate.log.push(`Marquée comme terminée le ${new Date().toLocaleString('fr-FR')}`);
+  
+  // S'assurer que la mise à jour est enregistrée dans Firebase si disponible
+  if (window.firebaseService && typeof window.firebaseService.saveTasks === 'function') {
+    window.firebaseService.saveTasks(tasks);
+  } else {
+    saveAndSync(taskToUpdate);
+  }
+  
+  // Forcer la synchronisation complète du tableau tasks dans localStorage
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+  
+  // Rafraîchir l'affichage des tâches
+  renderTasksFiltered();
+  
+  // Indiquer à l'utilisateur que la tâche a été marquée comme terminée
+  console.log(`Tâche "${taskToUpdate.titre}" marquée comme terminée`);
 }
 
 function editTitle(element, index) {
@@ -578,26 +298,38 @@ function viderTerminees() {
   const confirmation = confirm(" Archiver toutes les tâches terminées ?");
   if (!confirmation) return;
 
-  tasks = tasks.filter(task => task.statut !== "Terminée");
-  checkTasksForNotifications();
-  saveAndSync(tasks[index]); // <=== ajout ici
+  // Au lieu de réassigner tasks, on vide le tableau et on le remplit avec les tâches non terminées
+  const nonCompletedTasks = tasks.filter(task => task.statut !== "Terminée");
+  tasks.splice(0, tasks.length, ...nonCompletedTasks);
+
+  // Sauvegarder avec Firebase si disponible
+  if (window.firebaseService && typeof window.firebaseService.saveTasks === 'function') {
+    window.firebaseService.saveTasks(tasks);
+  } else {
+    saveTasks(); // ✅ on appelle juste saveTasks()
+  }
+  
   renderTasksFiltered();
 }
 
 function gererTachesEnRetard() {
   const todayStr = new Date().toISOString().split("T")[0];
 
+  let modification = false;
+
   tasks.forEach(task => {
-    // Ne pas modifier les tâches terminées
     if (task.statut !== "Terminée" && task.deadline && new Date(task.deadline).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)) {
       task.deadline = todayStr;
       task.log.push(`Date limite déplacée à aujourd'hui (${todayStr}) le ${new Date().toLocaleString('fr-FR')}`);
+      saveAndSync(task);
+      modification = true;
     }
   });
 
-  saveAndSync(tasks[index]); // <=== ajout ici
-  renderTasksFiltered();
-  updateRetardButtonState();
+  if (modification) {
+    renderTasksFiltered();
+    updateRetardButtonState();
+  }
 }
 
 function updateRetardButtonState() {
@@ -648,21 +380,6 @@ function updateTagSuggestions() {
   updateModalTagSuggestions();
 }
 
-function updateModalTagSuggestions() {
-  const datalist = document.getElementById('tag-suggestions-modal');
-  if (!datalist) return;
-  
-  datalist.innerHTML = '';
-  
-  const uniqueTags = [...new Set(tasks.map(task => task.tag).filter(tag => tag))];
-  
-  uniqueTags.forEach(tag => {
-    const option = document.createElement('option');
-    option.value = tag;
-    datalist.appendChild(option);
-  });
-}
-
 // Réinitialiser les filtres
 function resetFilters() {
   document.getElementById('filter-tag').value = '';
@@ -707,32 +424,30 @@ function addTask(event) {
   const tag = document.getElementById("task-tag").value.trim();
   const deadline = document.getElementById("task-deadline").value;
   const statut = document.getElementById("task-statut").value || "À faire";
-  const importance = document.getElementById("task-importance").value || "!";  // Ajout du degré d'importance
-  
+  const importance = document.getElementById("task-importance").value || "!";
+
   if (!titre) {
     alert("Le titre est obligatoire");
     return;
   }
-  
+
   const nouvelleTache = {
-    id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Ajout d'un ID unique
+    id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     titre,
     tag,
     deadline,
     statut,
-    importance, // Ajout du degré d'importance
-    description: "", // Ajout du champ description
-    etapes: [], // Ajout du tableau pour les sous-tâches
+    importance,
+    description: "",
+    etapes: [],
     createdAt: new Date().toISOString(),
     log: [`Créée le ${new Date().toLocaleString('fr-FR')}`]
   };
-  
+
   tasks.push(nouvelleTache);
-  saveAndSync(tasks[index]);
-  const index = tasks.length - 1;
-  debouncedSaveTask(tasks[index]); // <=== ajout ici
+  saveAndSync(nouvelleTache); // ✅ on sauvegarde la tâche, pas une index fantôme
+
   document.getElementById("task-form").reset();
-  // Réinitialiser le statut à "À faire"
   document.getElementById("task-statut").value = "À faire";
   renderTasksFiltered();
   updateTagSuggestions();
@@ -775,91 +490,6 @@ function renderTaskLog(task) {
     logEntry.textContent = entry;
     logContainer.appendChild(logEntry);
   });
-}
-
-function openTaskDetailModal(index) {
-  // S'assurer que l'index est un nombre
-  index = parseInt(index, 10);
-  
-  // Vérifier que l'index est valide
-  if (isNaN(index) || index < 0 || index >= tasks.length) {
-    console.error("Index de tâche invalide:", index);
-    return;
-  }
-  
-  // Mettre à jour l'index de la tâche en cours d'édition
-  currentEditingTaskIndex = index;
-  
-  const task = tasks[index];
-  document.getElementById('modal-task-index').value = index;
-  document.getElementById('modal-task-title').value = task.titre;
-  
-  // Gérer le champ de description
-  const descriptionField = document.getElementById('modal-task-description');
-  
-  // Vérifier si TinyMCE est disponible dans le scope global
-  if (typeof tinymce !== 'undefined') {
-    // Si TinyMCE n'est pas encore initialisé, l'initialiser maintenant
-    if (!tinyMCEInitialized) {
-      initTinyMCE();
-    }
-    
-    // Attendre un court instant pour s'assurer que TinyMCE est prêt
-    setTimeout(function() {
-      if (tinymce.get('modal-task-description')) {
-        // Mettre à jour le contenu de TinyMCE
-        tinymce.get('modal-task-description').setContent(task.description || '');
-      } else {
-        console.warn('TinyMCE editor not found for modal-task-description');
-        // Fallback au textarea standard
-        if (task.description && task.description.trim() !== '') {
-          descriptionField.value = task.description; // Pas besoin d'échapper ici car c'est un champ de formulaire
-          descriptionField.classList.remove('description-placeholder');
-        } else {
-          descriptionField.value = tinyMCEPlaceholder;
-          descriptionField.classList.add('description-placeholder');
-        }
-      }
-    }, 100);
-  } else {
-    console.warn('TinyMCE not available');
-    // Fallback au textarea standard
-    if (task.description && task.description.trim() !== '') {
-      descriptionField.value = task.description;
-      descriptionField.classList.remove('description-placeholder');
-    } else {
-      descriptionField.value = tinyMCEPlaceholder;
-      descriptionField.classList.add('description-placeholder');
-    }
-  }
-  
-  document.getElementById('modal-task-tag').value = task.tag || '';
-  document.getElementById('modal-task-deadline').value = task.deadline || '';
-  document.getElementById('modal-task-statut').value = task.statut;
-  document.getElementById('modal-task-importance').value = task.importance || '!';
-  
-  // Afficher le journal des actions
-  renderTaskLog(task);
-  
-  // Afficher les sous-tâches
-  renderSubtasks(task.etapes || []);
-  
-  // Charger les paramètres de récurrence
-  loadRecurrenceSettings(task.recurrence);
-  
-  updateModalTagSuggestions();
-  
-  // Ajouter les écouteurs d'événements pour les boutons de date rapide
-  document.getElementById('btn-tomorrow').onclick = () => setQuickDeadline(1);
-  document.getElementById('btn-day-after').onclick = () => setQuickDeadline(2);
-  document.getElementById('btn-next-week').onclick = () => setQuickDeadlineNextWeek();
-  
-  // Initialiser les options de récurrence
-  initRecurrenceOptions();
-  
-  // Afficher le modal
-  const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
-  modal.show();
 }
 
 function saveTaskDetails() {
@@ -959,7 +589,7 @@ function saveTaskDetails() {
     task.etapes = newEtapes;
   }
   
-  saveAndSync(tasks[index]); // <=== ajout ici
+  saveAndSync(tasks[taskIndex]); // ✅ OK
   renderTasksFiltered();
   
   // Fermer la modale
@@ -1066,34 +696,26 @@ function initMissingLogs() {
   console.log('Initialisation des journaux manquants...');
   const currentDate = new Date().toLocaleString('fr-FR');
   let compteur = 0;
-  
+
   tasks.forEach(task => {
     if (!task.log) {
       task.log = [];
       compteur++;
-      
-      // Ajouter une entrée initiale basée sur la date de création si disponible
       if (task.createdAt) {
         const creationDate = new Date(task.createdAt).toLocaleString('fr-FR');
         task.log.push(`Créée le ${creationDate}`);
       } else {
         task.log.push(`Journal initialisé le ${currentDate}`);
       }
-      
-      // Si la tâche est terminée et qu'on a une date de complétion, l'ajouter aussi
       if (task.statut === 'Terminée' && task.completedAt) {
         const completionDate = new Date(task.completedAt).toLocaleString('fr-FR');
         task.log.push(`Marquée comme terminée le ${completionDate}`);
       }
+      saveAndSync(task); // ✅ on sauvegarde chaque tâche corrigée
     }
   });
-  
-  if (compteur > 0) {
-    console.log(`${compteur} tâches ont été mises à jour avec un journal`);
-    saveAndSync(tasks[index]); // <=== ajout ici
-  } else {
-    console.log('Toutes les tâches ont déjà un journal');
-  }
+
+  console.log(`${compteur} tâche(s) mise(s) à jour avec un journal`);
 }
 
 function setQuickDeadline(days) {
@@ -1131,7 +753,7 @@ function deplacerRetardVersAujourdhui() {
   console.log("Tâches récupérées du localStorage:", tasksFromStorage.length);
   
   // Mettre à jour la variable globale tasks
-  tasks = tasksFromStorage;
+  let tasks = tasksFromStorage;
   
   let modificationEffectuee = false;
   let compteur = 0;
@@ -1150,6 +772,7 @@ function deplacerRetardVersAujourdhui() {
         task.deadline = aujourdhuiStr;
         task.log.push(`Date limite déplacée à aujourd'hui (${aujourdhuiStr}) le ${new Date().toLocaleString('fr-FR')}`);
         modificationEffectuee = true;
+        saveAndSync(task); // ✅ Sauvegarder la tâche modifiée
         compteur++;
       } else {
         console.log(`  - Tâche non en retard: ${task.deadline} >= ${aujourdhuiStr}`);
@@ -1173,57 +796,26 @@ function deplacerRetardVersAujourdhui() {
   console.log("Fin de la fonction deplacerRetardVersAujourdhui");
 }
 
-// Fonctions pour la gestion des sous-tâches
-function renderSubtasks(subtasks = []) {
-  const container = document.getElementById('subtasks-container');
-  container.innerHTML = '';
-  
-  if (subtasks.length === 0) {
-    container.innerHTML = '<div class="text-muted fst-italic">Aucune étape pour cette tâche. Cliquez sur "Ajouter une étape" pour commencer.</div>';
-    return;
+function updateSubtaskProgress(task, index) {
+  const cards = document.querySelectorAll('.task-card');
+  const card = cards[index];
+  if (!card || !task.etapes) return;
+
+  const completed = task.etapes.filter(st => st.faite).length;
+  const total = task.etapes.length;
+
+  // Met à jour le texte
+  const summary = card.querySelector('.subtask-summary');
+  if (summary) {
+    summary.textContent = `${completed} / ${total} sous-tâche${total > 1 ? 's' : ''} complétée${completed > 1 ? 's' : ''}`;
   }
-  
-  // Créer les éléments pour chaque sous-tâche
-  subtasks.forEach((subtask, index) => {
-    const subtaskItem = document.createElement('div');
-    subtaskItem.className = 'subtask-item';
-    subtaskItem.dataset.index = index;
-    
-    subtaskItem.innerHTML = `
-      <div class="form-check">
-        <input class="form-check-input subtask-checkbox" type="checkbox" id="subtask-${index}" ${subtask.faite ? 'checked' : ''}>
-      </div>
-      <div class="subtask-text" contenteditable="true">${subtask.titre}</div>
-      <div class="subtask-actions">
-        <button class="btn btn-sm btn-outline-danger delete-subtask-btn">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-    `;
-    
-    container.appendChild(subtaskItem);
-    
-    // Ajouter les écouteurs d'événements
-    const checkbox = subtaskItem.querySelector('.subtask-checkbox');
-    checkbox.addEventListener('change', function() {
-      subtask.faite = this.checked;
-    });
-    
-    const textElement = subtaskItem.querySelector('.subtask-text');
-    textElement.addEventListener('focus', function() {
-      this.classList.add('editing');
-    });
-    
-    textElement.addEventListener('blur', function() {
-      this.classList.remove('editing');
-      subtask.titre = this.textContent.trim();
-    });
-    
-    const deleteBtn = subtaskItem.querySelector('.delete-subtask-btn');
-    deleteBtn.addEventListener('click', function() {
-      container.removeChild(subtaskItem);
-    });
-  });
+
+  // Met à jour la barre
+  const progress = card.querySelector('.progress-bar');
+  if (progress) {
+    const pourcentage = total > 0 ? Math.floor((completed / total) * 100) : 0;
+    progress.style.width = `${pourcentage}%`;
+  }
 }
 
 // Fonction pour ajouter une nouvelle sous-tâche
@@ -1885,158 +1477,106 @@ function initDragAndDrop() {
 function processRecurringTasks() {
   console.log('Vérification des tâches récurrentes...');
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0]; // Format YYYY-MM-DD
+  const todayStr = today.toISOString().split('T')[0];
   let newTasksCreated = 0;
-  
+
   tasks.forEach(task => {
-    // Vérifier si la tâche a une récurrence active
-    if (task.recurrence && task.recurrence.enabled) {
-      // Vérifier si la tâche est terminée (on ne génère pas de nouvelles occurrences pour les tâches terminées)
-      if (task.statut === 'Terminée') {
-        return;
-      }
-      
-      // Vérifier si la récurrence a une date de fin et si cette date est passée
+    if (task.recurrence && task.recurrence.enabled && task.statut !== 'Terminée') {
       if (task.recurrence.endType === 'on-date' && task.recurrence.endValue && task.recurrence.endValue < todayStr) {
         return;
       }
-      
-      // Vérifier si la récurrence a un nombre d'occurrences et si ce nombre est atteint
+
       if (task.recurrence.endType === 'after' && task.recurrence.endValue) {
-        // Compter le nombre d'occurrences déjà générées (la tâche originale + les tâches générées)
         const occurrenceCount = 1 + (task.generatedOccurrences || 0);
         if (occurrenceCount >= task.recurrence.endValue) {
           return;
         }
       }
-      
-      // Vérifier si la dernière date de traitement est définie
+
       const lastProcessed = task.recurrence.lastProcessed || task.createdAt?.split('T')[0] || todayStr;
-      
-      // Déterminer si une nouvelle occurrence doit être créée
+
       let shouldCreateNewOccurrence = false;
       let nextDate = null;
-      
-      // Calculer la prochaine date en fonction du type de récurrence
-      switch(task.recurrence.type) {
-        case 'daily':
-          // Calculer le nombre de jours depuis la dernière génération
+
+      switch (task.recurrence.type) {
+        case 'daily': {
           const lastProcessedDate = new Date(lastProcessed);
-          const daysSinceLastProcessed = Math.floor((today - lastProcessedDate) / (1000 * 60 * 60 * 24));
-          
-          // Vérifier si l'intervalle est écoulé
-          if (daysSinceLastProcessed >= task.recurrence.interval) {
+          const daysSinceLast = Math.floor((today - lastProcessedDate) / (1000 * 60 * 60 * 24));
+          if (daysSinceLast >= task.recurrence.interval) {
             shouldCreateNewOccurrence = true;
-            
-            // Calculer la prochaine date
             nextDate = new Date(lastProcessed);
             nextDate.setDate(nextDate.getDate() + task.recurrence.interval);
           }
           break;
-          
-        case 'weekly':
-          // Calculer le nombre de semaines depuis la dernière génération
+        }
+        case 'weekly': {
           const lastProcessedWeek = new Date(lastProcessed);
-          const weeksSinceLastProcessed = Math.floor((today - lastProcessedWeek) / (1000 * 60 * 60 * 24 * 7));
-          
-          // Vérifier si l'intervalle est écoulé
-          if (weeksSinceLastProcessed >= task.recurrence.interval) {
-            // Vérifier si le jour de la semaine actuel est dans la liste des jours sélectionnés
-            const currentDayOfWeek = today.getDay(); // 0 = dimanche, 1 = lundi, etc.
-            if (task.recurrence.weekdays && task.recurrence.weekdays.includes(currentDayOfWeek)) {
-              shouldCreateNewOccurrence = true;
-              
-              // Calculer la prochaine date (aujourd'hui)
-              nextDate = new Date(todayStr);
-            }
+          const weeksSinceLast = Math.floor((today - lastProcessedWeek) / (1000 * 60 * 60 * 24 * 7));
+          const currentDay = today.getDay();
+          if (weeksSinceLast >= task.recurrence.interval &&
+              task.recurrence.weekdays?.includes(currentDay)) {
+            shouldCreateNewOccurrence = true;
+            nextDate = new Date(todayStr);
           }
           break;
-          
-        case 'monthly':
-          // Calculer le nombre de mois depuis la dernière génération
+        }
+        case 'monthly': {
           const lastProcessedMonth = new Date(lastProcessed);
-          const monthsSinceLastProcessed = (today.getFullYear() - lastProcessedMonth.getFullYear()) * 12 + (today.getMonth() - lastProcessedMonth.getMonth());
-          
-          // Vérifier si l'intervalle est écoulé
-          if (monthsSinceLastProcessed >= task.recurrence.interval) {
-            // Vérifier si le jour du mois correspond
-            if (today.getDate() === lastProcessedMonth.getDate()) {
-              shouldCreateNewOccurrence = true;
-              
-              // Calculer la prochaine date (aujourd'hui)
-              nextDate = new Date(todayStr);
-            }
+          const monthsSinceLast = (today.getFullYear() - lastProcessedMonth.getFullYear()) * 12 +
+                                   (today.getMonth() - lastProcessedMonth.getMonth());
+          if (monthsSinceLast >= task.recurrence.interval &&
+              today.getDate() === lastProcessedMonth.getDate()) {
+            shouldCreateNewOccurrence = true;
+            nextDate = new Date(todayStr);
           }
           break;
-          
-        case 'yearly':
-          // Calculer le nombre d'années depuis la dernière génération
+        }
+        case 'yearly': {
           const lastProcessedYear = new Date(lastProcessed);
-          const yearsSinceLastProcessed = today.getFullYear() - lastProcessedYear.getFullYear();
-          
-          // Vérifier si l'intervalle est écoulé
-          if (yearsSinceLastProcessed >= task.recurrence.interval) {
-            // Vérifier si le jour et le mois correspondent
-            if (today.getDate() === lastProcessedYear.getDate() && today.getMonth() === lastProcessedYear.getMonth()) {
-              shouldCreateNewOccurrence = true;
-              
-              // Calculer la prochaine date (aujourd'hui)
-              nextDate = new Date(todayStr);
-            }
+          const yearsSinceLast = today.getFullYear() - lastProcessedYear.getFullYear();
+          if (yearsSinceLast >= task.recurrence.interval &&
+              today.getDate() === lastProcessedYear.getDate() &&
+              today.getMonth() === lastProcessedYear.getMonth()) {
+            shouldCreateNewOccurrence = true;
+            nextDate = new Date(todayStr);
           }
           break;
+        }
       }
-      
-      // Créer une nouvelle occurrence si nécessaire
+
       if (shouldCreateNewOccurrence && nextDate) {
-        // Créer une copie de la tâche
         const newTask = JSON.parse(JSON.stringify(task));
-        
-        // Mettre à jour les propriétés de la nouvelle tâche
+        newTask.id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         newTask.createdAt = new Date().toISOString();
         newTask.log = [`Créée automatiquement le ${new Date().toLocaleString('fr-FR')} (récurrence)`];
-        newTask.statut = 'À faire'; // Réinitialiser le statut
-        newTask.completedAt = null; // Réinitialiser la date de complétion
-        
-        // Mettre à jour la date limite si elle existe
+        newTask.statut = 'À faire';
+        newTask.completedAt = null;
+
         if (newTask.deadline) {
-          // Calculer la différence entre la date limite et la date de création de la tâche originale
           const originalCreatedAt = new Date(task.createdAt);
           const originalDeadline = new Date(task.deadline);
-          const daysDifference = Math.floor((originalDeadline - originalCreatedAt) / (1000 * 60 * 60 * 24));
-          
-          // Appliquer la même différence à la nouvelle tâche
+          const daysDiff = Math.floor((originalDeadline - originalCreatedAt) / (1000 * 60 * 60 * 24));
           const newDeadline = new Date(nextDate);
-          newDeadline.setDate(newDeadline.getDate() + daysDifference);
+          newDeadline.setDate(newDeadline.getDate() + daysDiff);
           newTask.deadline = newDeadline.toISOString().split('T')[0];
         }
-        
-        // Ajouter un marqueur indiquant que cette tâche est une occurrence générée
+
         newTask.isGeneratedOccurrence = true;
-        
-        // Supprimer la récurrence pour éviter de générer des occurrences en cascade
         newTask.recurrence = { enabled: false };
-        
-        // Ajouter la nouvelle tâche
+
         tasks.push(newTask);
-        newTasksCreated++;
-        
-        // Mettre à jour la date de dernière génération de la tâche originale
+        saveAndSync(newTask); // ✅ Sauvegarder la nouvelle tâche
+
         task.recurrence.lastProcessed = todayStr;
-        
-        // Incrémenter le compteur d'occurrences générées
         task.generatedOccurrences = (task.generatedOccurrences || 0) + 1;
+        saveAndSync(task); // ✅ Mettre à jour la tâche originale
+
+        newTasksCreated++;
       }
     }
   });
-  
-  if (newTasksCreated > 0) {
-    console.log(`${newTasksCreated} nouvelles tâches récurrentes créées`);
-    saveAndSync(tasks[index]); // <=== ajout ici
-  } else {
-    console.log('Aucune nouvelle tâche récurrente à créer aujourd\'hui');
-  }
-  
-  // Vérifier les tâches importantes pour les notifications
-  checkTasksForNotifications();
+
+  window.markAsDone = markAsDone;
+
+  console.log(`${newTasksCreated} nouvelle(s) tâche(s) récurrente(s) générée(s)`);
 }
