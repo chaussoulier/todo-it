@@ -61,11 +61,16 @@ def ajouter_tache():
     titre = input("Titre de la tâche : ")
     description = input("Description : ")
     tag = input("Tag (ex : perso, pro, urgent) : ").strip().lower()
-    statut = input("Statut (À faire, En cours, Terminée) : ").strip().lower()
+    statut_input = input("Statut (À faire, En cours, Terminée) : ").strip().lower()
 
-    if statut not in ["À faire", "En cours", "Terminée"]:
+    STATUTS = ["À faire", "En cours", "Terminée"]
+    STATUTS_LC = [s.lower() for s in STATUTS]
+
+    if statut_input not in STATUTS_LC:
         print("❌ Statut invalide. Tâche non ajoutée.")
         return
+
+    statut = STATUTS[STATUTS_LC.index(statut_input)]
 
     deadline = input("Deadline (AAAA-MM-JJ, optionnel) : ").strip()
     if deadline:
@@ -120,7 +125,7 @@ def modifier_tache():
             nouveau_titre = input(f"Nouveau titre (laisser vide pour garder '{tache['titre']}') : ")
             nouvelle_description = input(f"Nouvelle description (laisser vide pour garder l'existante) : ")
             nouveau_tag = input(f"Nouveau tag (actuel : {tache.get('tag', '')}) : ")
-            nouveau_statut = input(f"Nouveau statut (À faire, En cours, Terminée) (actuel : {tache['statut']}) : ").strip().lower()
+            nouveau_statut_input = input(f"Nouveau statut (À faire, En cours, Terminée) (actuel : {tache['statut']}) : ").strip().lower()
             nouveau_deadline = input(f"Nouveau deadline (laisser vide pour garder '{tache.get('deadline', 'Aucune')}') : ").strip()
             if nouveau_deadline:
                 try:
@@ -137,8 +142,10 @@ def modifier_tache():
                 tache["description"] = nouvelle_description
             if nouveau_tag:
                 tache["tag"] = nouveau_tag
-            if nouveau_statut in ["À faire", "En cours", "Terminée"]:
-                tache["statut"] = nouveau_statut
+            STATUTS = ["À faire", "En cours", "Terminée"]
+            STATUTS_LC = [s.lower() for s in STATUTS]
+            if nouveau_statut_input in STATUTS_LC:
+                tache["statut"] = STATUTS[STATUTS_LC.index(nouveau_statut_input)]
 
             sauvegarder_taches(taches)
             print("✏️ Tâche modifiée avec succès.")
@@ -163,9 +170,11 @@ def changer_statut():
         if tache["id"] == id_tache:
             print(f"Tâche sélectionnée : {tache['titre']}")
             print("Nouveaux statuts possibles : À faire, En cours, Terminée")
-            nouveau_statut = input("Nouveau statut : ").strip().lower()
-            if nouveau_statut in ["À faire", "En cours", "Terminée"]:
-                tache["statut"] = nouveau_statut
+            nouveau_statut_input = input("Nouveau statut : ").strip().lower()
+            STATUTS = ["À faire", "En cours", "Terminée"]
+            STATUTS_LC = [s.lower() for s in STATUTS]
+            if nouveau_statut_input in STATUTS_LC:
+                tache["statut"] = STATUTS[STATUTS_LC.index(nouveau_statut_input)]
                 sauvegarder_taches(taches)
                 print("✅ Statut mis à jour.")
             else:
@@ -223,10 +232,14 @@ def filtrer_par_statut():
         print("📭 Aucune tâche à afficher.")
         return
 
-    statut_recherche = input("Statut à filtrer (À faire, En cours, Terminée) : ").strip().lower()
-    if statut_recherche not in ["À faire", "En cours", "Terminée"]:
+    statut_recherche_input = input("Statut à filtrer (À faire, En cours, Terminée) : ").strip().lower()
+    STATUTS = ["À faire", "En cours", "Terminée"]
+    STATUTS_LC = [s.lower() for s in STATUTS]
+    if statut_recherche_input not in STATUTS_LC:
         print("❌ Statut invalide.")
         return
+
+    statut_recherche = STATUTS[STATUTS_LC.index(statut_recherche_input)]
 
     taches_filtrees = [t for t in taches if t["statut"] == statut_recherche]
 
